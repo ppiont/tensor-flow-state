@@ -12,7 +12,7 @@ import seaborn
 #from sklearn.preprocessing import OneHotEncoder
 
 # set working dir
-os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state")
+os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
 # import homebrew
 #from modules.pgConnect import pgConnect

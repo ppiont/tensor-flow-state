@@ -11,7 +11,7 @@ import owslib
 import seaborn as sns
 
 # set working dir
-os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state")
+os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
 # define directories
 datadir = "./data/"

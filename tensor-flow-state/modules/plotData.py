@@ -10,7 +10,7 @@ sns.set(context='paper', style='white')
 #print(plt.style.available)
 
 
-os.chdir("C:/Users/peterpiontek/Google Drive/Geodan/DL")
+os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
 # directories
 datadir = "./data/"
