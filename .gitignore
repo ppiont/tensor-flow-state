@@ -1,0 +1,11 @@
+# don't track these folders
+**/data/
+**/plots/
+
+# ignore postgres connection script (it includes database pw)
+**/pgConnect.py
+
+# ignore tensorflow test script. it's just a playground
+tensorflow-test.py
+
+**/__pycache__/
