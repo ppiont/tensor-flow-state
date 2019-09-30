@@ -100,39 +100,15 @@ def getAll(start, end, id_list):
             print("The PostgreSQL connection is closed\nFiles have been\
  fetched and processed")
 
-
-# SELECT sum(flow_avg / 60) OVER (PARTITION BY DATEPART(dayofyear, date)) AS avg_daily_flow
-# FROM ndw.trafficspeed table
-# WHERE location LIKE 'RWS01_MONIBAS_0021hrl%'
-# ORDER by location
-
-# NOTHING WORKS #
-
-## work in progress, actually kinda works (aka will work eventually)
-#  /*
-# All measurement sites along the left side of the A2, excluding ramps and connectors
-# field leading_id references to the next measurement site along the road (if available)
-# */
-
-# WITH part1 AS (
-# 	SELECT *
-# 	FROM ndw.trafficspeed t
-# 	WHERE t.location LIKE 'RWS01_MONIBAS_0021hrl%'
-# 	AND t.date > now() - INTERVAL '3 days'
-# )
-
-# SELECT t.location AS sensor, t.date AS notime, SUM(t.flow_avg) OVER (PARTITION BY t.location, DATE_PART('doy', t.date)) AS avg_daily_flow
-# FROM part1 t
-# ORDER by t.location
-
-
-
-# /*SELECT *,
-# lead(mst_id) OVER (ORDER BY mst_id) as leading_id
-# FROM ndw.mst_points_latest
-# WHERE mst_id LIKE 'RWS01_MONIBAS_0021hrl%'
-# ORDER BY mst_id
-# */
+# the working query
+query = """
+SELECT location AS sensor, date::date AS date, SUM(flow_avg / 60) AS intensity
+FROM ndw.trafficspeed
+WHERE location LIKE 'RWS01_MONIBAS_0021hrl%'
+AND date >= '06-01-2019' AND date <= '08-31-2019'
+GROUP BY location, date::date
+ORDER by location, date::date
+"""
 
 
 IDs = list(fetchLike('RWS01_MONIBAS_0021hrl%')[2])

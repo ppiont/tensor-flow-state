@@ -100,7 +100,8 @@ fig.savefig(plotdir + "diff_plot.png", dpi=600, bbox_inches = 'tight')
 #############################################################################
 
 
-
+# for x in sensor2_df.groupby(['date'])['flow'].sum().ravel():
+#     print(f"{x:f}")
 
 
 
