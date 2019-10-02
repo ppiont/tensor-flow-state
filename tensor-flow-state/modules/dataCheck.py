@@ -21,15 +21,19 @@ plotdir = './plots/'
 from modules.ndwGet import ndwGet
 
 one_north,two_north = 'RWS01_MONIBAS_0021hrl0339ra','RWS01_MONIBAS_0021hrl0336ra'
-from_date, to_date = '06-01-2019','08-31-2019'
+from_date, to_date = '06-01-2019','06-07-2019'
 
 # fetch traffic data
-sensor1_df = ndwGet(from_date, to_date, one_north)[['datetime','date','flow','speed','weekday','weekend','holiday','location','lon', 'lat']]
-sensor2_df = ndwGet(from_date, to_date, two_north)[['datetime','date','flow','speed','weekday','weekend','holiday','location','lon', 'lat']]
+sensor1_df = ndwGet(from_date, to_date, one_north)[['datetime','date','flow','speed','weekday','weekend','holiday','sensor_id','lon', 'lat']]
+sensor2_df = ndwGet(from_date, to_date, two_north)[['datetime','date','flow','speed','weekday','weekend','holiday','sensor_id','lon', 'lat']]
 
 # normalize flow col
 sensor1_df['flow'] = sensor1_df['flow']/60
 sensor2_df['flow'] = sensor2_df['flow']/60
+
+print(sensor1_df.groupby(['date'], as_index=False)['flow'].mean())
+
+print(38.03 * 60 * 24)
 
 diff_df = pd.DataFrame()
 diff_df['date'] = sensor1_df.date.unique()

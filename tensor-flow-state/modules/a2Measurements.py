@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import psycopg2
+import pickle
+import holidays
 
 # set working dir
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
@@ -17,76 +19,37 @@ plotdir = './plots/'
 # import homebrew
 from modules.pgConnect import pgConnect
 
+def getIdPatternDaySum(start, end, pattern):
+    """
+    Filter database by sensors containing a pattern, within a specified time period.
+    Return a dataframe with coords and traffic volume + average speed,
+    grouped by date, for the filtered set."
+    """
 
-def fetchLike(pattern):
     try:
+        df = pd.DataFrame(columns = ['sensor_id','date','volume','speed_avg','lon','lat'])
         # connect to postgres and create cursor
         connection = pgConnect()
         cursor = connection.cursor()
         print("Connected to PostgreSQL")
         #define query
-        query = "SELECT *, \
-        lead(mst_id) OVER (ORDER BY mst_id) as leading_id \
-        FROM ndw.mst_points_latest \
-        WHERE mst_id LIKE '" + pattern + "' \
-        ORDER BY mst_id"
-
-        # execute query
-        cursor.execute(query)
-        
-        # fetch all to pandas df
-        df = pd.DataFrame(cursor.fetchall())# , columns = ['lon','lat','datetime','flow','speed','location','hour','weekday'])
-
-        cursor.close()
-        
-        return df
-    
-    except psycopg2.Error as e:
-        print("Failed to read data from database:", e)
-        
-    finally:
-        if (connection): # don't know why it's in parentheses
-            connection.close()
-            print("The PostgreSQL connection is closed\nFiles have been\
- fetched and processed")
-
-
-def getAll(start, end, id_list):
-
-    try:
-        df = pd.DataFrame(columns = ['id','lon','lat','datetime','flow','speed','weekday'])
-        # connect to postgres and create cursor
-        connection = pgConnect()
-        cursor = connection.cursor()
-        print("Connected to PostgreSQL")
-        #define query
-        for id in id_list[:10]:
-            query = "WITH pts AS \
-            (SELECT * FROM ndw.mst_points_latest WHERE mst_id = '" + id + "') \
-            SELECT mst_id, ST_X(geom) lon, ST_Y(geom) lat, b.date, b.flow_sum, b.speed_avg, \
-            date_part('dow', b.date) \
+        query = "WITH pts AS \
+            (SELECT * FROM ndw.mst_points_latest WHERE mst_id LIKE '" + pattern + "') \
+            SELECT b.location AS sensor_id, b.date::date AS date, SUM(b.flow_sum / 60) AS volume, \
+            AVG(b.speed_avg) AS speed_avg, ST_X(a.geom) AS lon, ST_Y(a.geom) AS lat \
             FROM pts AS a \
             INNER JOIN ndw.trafficspeed AS b \
             ON a.mst_id = b.location \
-            WHERE b.date >= '" + start + "' \
-            AND b.date <= '" + end + "' \
-            ORDER BY b.date"
+            WHERE b.date::date >= '" + start + "' \
+            AND b.date::date <= '" + end + "' \
+            GROUP BY b.location, a.geom, date::date \
+            ORDER by b.location, a.geom, date::date"
             # execute query
-            cursor.execute(query)
-            # create df
-            appendix = pd.DataFrame(cursor.fetchall(), columns = ['id', 'lon','lat','datetime','flow','speed','weekday'])
-            # append
-            df = df.append(appendix, ignore_index=True)
-        # # remove timezone
-        # df.iloc[2] = df.iloc[2].dt.tz_localize(None)
-        #         # add hours, minutes stuff
-        # df['date'] = df['datetime'].dt.date
-        # # make column order more OCD friendly
-        # df = df[['lon','lat','datetime','flow','speed','weekday']]
-        # # close cursor
-        # cursor.close()
-        # # add hours, minutes stuff
-        # df['date'] = df[2].dt.date
+        cursor.execute(query)
+        # create df
+        appendix = pd.DataFrame(cursor.fetchall(), columns = ['sensor_id','date','volume','speed_avg','lon','lat'])
+        # append
+        df = df.append(appendix, ignore_index=True)
         return df
         # close cursor
         cursor.close()
@@ -98,19 +61,18 @@ def getAll(start, end, id_list):
         if (connection): # don't know why it's in parentheses
             connection.close()
             print("The PostgreSQL connection is closed\nFiles have been\
- fetched and processed")
-
-# the working query
-query = """
-SELECT location AS sensor, date::date AS date, SUM(flow_avg / 60) AS intensity
-FROM ndw.trafficspeed
-WHERE location LIKE 'RWS01_MONIBAS_0021hrl%'
-AND date >= '06-01-2019' AND date <= '08-31-2019'
-GROUP BY location, date::date
-ORDER by location, date::date
-"""
+  fetched and processed")
 
 
-IDs = list(fetchLike('RWS01_MONIBAS_0021hrl%')[2])
-
-test = getAll('06-01-2019', '08-31-2019', IDs)
+test = getIdPatternDaySum('2019-06-01', '2019-08-31', 'RWS01_MONIBAS_0021hrl%')
+# add holiday binary
+test['holiday'] = np.array([int(x in holidays.NL()) for x in test['date']])
+# add weekday
+test['weekday'] = pd.to_datetime(test['date']).dt.dayofweek.astype(int) + 1
+# add weekend
+test['weekend'] = np.where(test['weekday'] > 5, 1, 0)
+# convert strings to f64
+test['speed_avg'] = test.speed_avg.astype('float64')
+test['volume'] = test.volume.astype('float64')
+# pickle
+test.to_pickle(datadir + '3months_summed_daily_volume.pkl')
