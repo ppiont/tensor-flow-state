@@ -66,7 +66,7 @@ from modules.pgConnect import pgConnect
 #   fetched and processed")
 
 
-# test = getIdPatternDaySum('2019-06-01', '2019-08-31', 'RWS01_MONIBAS_0021hrl%')
+# test = getIdPatternDaySum('2019-06-01', '2019-09-30', 'RWS01_MONIBAS_0021hrl04__ra')
 # # add holiday binary
 # test['holiday'] = np.array([int(x in holidays.NL()) for x in test['date']])
 # # add weekday
@@ -78,6 +78,8 @@ from modules.pgConnect import pgConnect
 # test['volume'] = test.volume.astype('float64')
 # # pickle
 # test.to_pickle(datadir + '3months_summed_daily_volume.pkl')
+
+
 
 
 df = pd.read_pickle(datadir + '3months_summed_daily_volume.pkl')
