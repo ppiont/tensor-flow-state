@@ -7,7 +7,7 @@ import holidays
 from sklearn.preprocessing import OneHotEncoder
 from modules.pgConnect import pgConnect
 
-def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0403ra'):
+def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
     
     try:
         # connect to postgres and create cursor
@@ -54,7 +54,7 @@ def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0403ra'):
         # fix weekday
         df['weekday'] += 1
         # add weekend binary
-        df['weekend'] = np.where(df['weekday'] > 4, 1, 0)
+        df['weekend'] = np.where(df['weekday'] > 5, 1, 0)
         
         # add holiday binary
         df['holiday'] = np.array([int(x in holidays.NL()) for x in df['date']])
