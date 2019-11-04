@@ -10,11 +10,11 @@ from modules.pgConnect import pgConnect
 def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
     
     try:
-        # connect to postgres and create cursor
+        # Connect to postgres and create cursor
         connection = pgConnect()
         cursor = connection.cursor()
         print("Connected to PostgreSQL")
-        #define query
+        # Define query
         query = "WITH pts AS \
         (SELECT * FROM ndw.mst_points_latest WHERE mst_id = '" + ID + "') \
         SELECT ST_X(geom) lon, ST_Y(geom) lat, b.date, b.flow_sum, b.speed_avg, \
@@ -27,39 +27,39 @@ def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
         AND b.date::date <= '" + end + "' \
         ORDER BY b.date"
         
-        # execute query
+        # Execute query
         cursor.execute(query)
 
-        # fetch all to pandas df
+        # Fetch all to pandas df
         df = pd.DataFrame(cursor.fetchall(), columns = ['lon','lat','datetime',
                                 'flow','speed','sensor_id','hour','weekday'])
         
-        # remove timezone
+        # Remove timezone
         df.datetime = df['datetime'].dt.tz_localize(None)
         
-        # add hours, minutes stuff
+        # Add hours, minutes stuff
         df['date'] = df['datetime'].dt.date
         df['minute'] = df['datetime'].dt.minute
         
-        # make column order more OCD friendly
+        # Make column order more OCD friendly
         df = df[['lon','lat','datetime','sensor_id','date','hour','minute',
                                              'weekday','flow','speed']]
         
-        # create hour/minute cols with continuously spaced vals (sine, cosine)
+        # Create hour/minute cols with continuously spaced vals (sine, cosine)
         df['hour_sine'] = np.sin(2*np.pi*df.hour/24)
         df['hour_cosine'] = np.cos(2*np.pi*df.hour/24)
         df['minute_sine'] = np.sin(2*np.pi*df.minute/60)
         df['minute_cosine'] = np.cos(2*np.pi*df.minute/60)
 
-        # fix weekday
+        # Fix weekday
         df['weekday'] += 1
-        # add weekend binary
+        # Add weekend binary
         df['weekend'] = np.where(df['weekday'] > 5, 1, 0)
         
-        # add holiday binary
+        # Add holiday binary
         df['holiday'] = np.array([int(x in holidays.NL()) for x in df['date']])
         
-        # one-hot encode weekday
+        # One-hot encode weekday
         onehot_encoder = OneHotEncoder(sparse=False, categories = 'auto')
         integer_encoded = df.weekday.values.reshape(len(df.weekday), 1)
         onehot_encoded = onehot_encoder.fit_transform(integer_encoded)
@@ -71,7 +71,7 @@ def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
         # # set index to time (ERROR, just changes the index name)
         # df.index.name = 'datetime'
 
-        # close cursor
+        # Close cursor
         cursor.close()
         
         return df

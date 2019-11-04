@@ -8,7 +8,7 @@ def knmiGet(start, end, stations=[240]):
     knmi_data = knmy.get_hourly_data(stations=[240], start=start, end=end,
                             inseason=False, variables=['ALL'], parse=True)[3]
     
-    # rename columns
+    # Rename columns
     cols = ['weatherstation', 'date', 'hour', 'winddirection', 'windspeed_avg', \
             'windspeed_10m','windspeed_max', 'temperature', 'temperature_min', \
             'temperature_dewpoint', 'sunduration', 'sunradiation', \
@@ -17,23 +17,23 @@ def knmiGet(start, end, stations=[240]):
             'weathercodeindicator', 'mist', 'rain', 'snow', 'storm', 'ice']
     knmi_data.columns = cols
     
-    # drop useless columns
+    # Drop useless columns
     knmi_data.drop(['winddirection', 'windspeed_10m', 'temperature_dewpoint', \
                     'horizontalview', 'cloudcover', 'weathercode', \
                     'weathercodeindicator'], axis = 1, inplace=True)
-    # drop first row since it's actually a header, then reset index
+    # Drop first row since it's actually a header, then reset index
     knmi_data.drop([0], inplace=True)
     knmi_data.reset_index(drop=True, inplace=True)
-    # subtract one hour to make data in line with NDW
+    # Subtract one hour to make data in line with NDW
     knmi_data.hour = knmi_data.hour.astype(int) - 1
-    # remove columns with NA vals
+    # Remove columns with NA vals
     knmi_data.dropna(axis=1, inplace=True)
-    # make dataframe numeric
+    # Make dataframe numeric
     knmi_data = knmi_data.apply(pd.to_numeric)
-    # remove negative precipitation values (-1 means 0.05mm or less)
+    # Remove negative precipitation values (-1 means 0.05mm or less)
     knmi_data['precipitation'] = \
         np.where(knmi_data['precipitation'] < 0, 0, knmi_data['precipitation'])
-    # make date col a datetime object
+    # Make date col a datetime object
     knmi_data['date'] = pd.to_datetime(knmi_data['date'], yearfirst = True, 
                                                   format = '%Y%m%d').dt.date
     return knmi_data

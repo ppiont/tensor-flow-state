@@ -1,25 +1,25 @@
 ### MAIN ###
 
-# import libraries
+# Import libraries
 import os
 import numpy as np
 import pandas as pd
-#from datetime import datetime, date
 import pickle
 import matplotlib.pyplot as plt
 import seaborn
+#from datetime import datetime, date
 #import holidays
 #from sklearn.preprocessing import OneHotEncoder
 
-# set working dir
+# Set working dir
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
-# import homebrew
+# Import homebrew
 #from modules.pgConnect import pgConnect
 from modules.ndwGet import ndwGet
 from modules.knmiGet import knmiGet
 
-# define directories
+# Fefine directories
 datadir = "./data/"
 plotdir = './plots/'
 
@@ -29,31 +29,19 @@ if not os.path.exists(datadir):
 if not os.path.exists(plotdir):
     os.makedirs(plotdir)
 
-# fetch traffic data
+# Fetch traffic data
 traffic_data = ndwGet('06-01-2019', '08-31-2019', 'RWS01_MONIBAS_0021hrl0403ra')
 
-# get weather data (from Schiphol as defualt)
+# Get weather data (from Schiphol as defualt)
 weather_data = knmiGet('2019060101', '2019083124', [240])
 
 df = pd.merge(traffic_data, weather_data, how='left', on = ['date', 'hour']) #Fix
 
-## remove null vals
+## Temove null vals
 #df.dropna(inplace=True)
 
 # save to pickle
 df.to_pickle(datadir + '3months_weather.pkl')
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
