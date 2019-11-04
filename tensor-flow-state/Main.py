@@ -2,14 +2,7 @@
 
 # Import libraries
 import os
-import numpy as np
 import pandas as pd
-import pickle
-import matplotlib.pyplot as plt
-import seaborn
-#from datetime import datetime, date
-#import holidays
-#from sklearn.preprocessing import OneHotEncoder
 
 # Set working dir
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
@@ -19,7 +12,7 @@ os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state
 from modules.ndwGet import ndwGet
 from modules.knmiGet import knmiGet
 
-# Fefine directories
+# Define directories
 datadir = "./data/"
 plotdir = './plots/'
 
@@ -28,23 +21,28 @@ if not os.path.exists(datadir):
     os.makedirs(datadir)
 if not os.path.exists(plotdir):
     os.makedirs(plotdir)
+    
+# Don't limit, truncate or wrap columns displayed by pandas
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.width', 200) # accepted line width before wrapping
+pd.set_option('display.max_colwidth', -1)
+# Display decimals instead of scientific with pandas
+pd.options.display.float_format = '{:.2f}'.format
 
 # Fetch traffic data
-traffic_data = ndwGet('06-01-2019', '08-31-2019', 'RWS01_MONIBAS_0021hrl0403ra')
+traffic_data = ndwGet('06-01-2019', '10-31-2019', 'RWS01_MONIBAS_0021hrl0414ra')
 
 # Get weather data (from Schiphol as defualt)
-weather_data = knmiGet('2019060101', '2019083124', [240])
+weather_data = knmiGet('2019060101', '2019103124', [240])
 
 df = pd.merge(traffic_data, weather_data, how='left', on = ['date', 'hour']) #Fix
 
-## Temove null vals
+## Remove null vals
 #df.dropna(inplace=True)
 
-# save to pickle
-df.to_pickle(datadir + '3months_weather.pkl')
-
-
-
+# Save to pickle
+df.to_pickle(datadir + 'RWS01_MONIBAS_0021hrl0414ra_5months_incl_weather.pkl')
 
 
 
@@ -92,4 +90,3 @@ df.to_pickle(datadir + '3months_weather.pkl')
 #pd.options.display.precision = 3
 #pd.options.display.width = None
 #### 
-

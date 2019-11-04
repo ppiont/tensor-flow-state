@@ -1,5 +1,7 @@
 ### NDW import module ###
 
+# Note to self: date_trunc with modulo magic then avg(speed) sum(flow) for aggregating time 
+
 import numpy as np
 import pandas as pd
 import psycopg2
@@ -17,9 +19,16 @@ def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
         # Define query
         query = "WITH pts AS \
         (SELECT * FROM ndw.mst_points_latest WHERE mst_id = '" + ID + "') \
-        SELECT ST_X(geom) lon, ST_Y(geom) lat, b.date, b.flow_sum, b.speed_avg, \
-        mst_id, date_part('hour', b.date), \
-        date_part('dow', b.date) \
+        SELECT b.date AS timestamp, \
+        ST_X(geom) AS lon, \
+        ST_Y(geom) AS lat, \
+        mst_id AS sensor_id, \
+        date_trunc('day', b.date) AS date, \
+        date_part('hour', b.date)::SMALLINT, \
+        date_part('minute', b.date)::SMALLINT as minute, \
+        (date_part('dow', b.date)::SMALLINT + 1) AS weekday, \
+        b.flow_sum::INTEGER AS flow, \
+        b.speed_avg::SMALLINT AS speed \
         FROM pts AS a \
         INNER JOIN ndw.trafficspeed AS b \
         ON a.mst_id = b.location \
@@ -31,33 +40,26 @@ def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
         cursor.execute(query)
 
         # Fetch all to pandas df
-        df = pd.DataFrame(cursor.fetchall(), columns = ['lon','lat','datetime',
-                                'flow','speed','sensor_id','hour','weekday'])
+        df = pd.DataFrame(cursor.fetchall(), \
+                          columns = ['timestamp', 'lon', 'lat', 'sensor_id', 
+                                     'date', 'hour', 'minute', 'weekday', 
+                                     'flow', 'speed'])
         
         # Remove timezone
-        df.datetime = df['datetime'].dt.tz_localize(None)
-        
-        # Add hours, minutes stuff
-        df['date'] = df['datetime'].dt.date
-        df['minute'] = df['datetime'].dt.minute
-        
-        # Make column order more OCD friendly
-        df = df[['lon','lat','datetime','sensor_id','date','hour','minute',
-                                             'weekday','flow','speed']]
+        df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_convert(None)
+        df['date'] = pd.to_datetime(df['date']).dt.tz_convert(None)
         
         # Create hour/minute cols with continuously spaced vals (sine, cosine)
-        df['hour_sine'] = np.sin(2*np.pi*df.hour/24)
-        df['hour_cosine'] = np.cos(2*np.pi*df.hour/24)
-        df['minute_sine'] = np.sin(2*np.pi*df.minute/60)
-        df['minute_cosine'] = np.cos(2*np.pi*df.minute/60)
+        df['hour_sine'] = np.sin(2 * np.pi * df.hour / 24)
+        df['hour_cosine'] = np.cos(2 * np.pi * df.hour / 24)
+        df['minute_sine'] = np.sin(2 * np.pi * df.minute / 60)
+        df['minute_cosine'] = np.cos(2 * np.pi * df.minute / 60)
 
-        # Fix weekday
-        df['weekday'] += 1
         # Add weekend binary
-        df['weekend'] = np.where(df['weekday'] > 5, 1, 0)
+        df['weekend'] = np.where(df['weekday'] > 5, 1, 0).astype(np.int16)
         
-        # Add holiday binary
-        df['holiday'] = np.array([int(x in holidays.NL()) for x in df['date']])
+        # # Add holiday binary
+        df['holiday'] = np.array([int(x in holidays.NL()) for x in df['date']]).astype(np.int16)
         
         # One-hot encode weekday
         onehot_encoder = OneHotEncoder(sparse=False, categories = 'auto')
@@ -66,21 +68,20 @@ def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
         days = ['monday','tuesday','wednesday','thursday','friday','saturday',
                                                                      'sunday']
         for day in days:
-            df[day] = onehot_encoded[:,days.index(day)]
-        
-        # # set index to time (ERROR, just changes the index name)
-        # df.index.name = 'datetime'
+            df[day] = onehot_encoded[:,days.index(day)].astype(np.int16)
 
         # Close cursor
         cursor.close()
         
+        # Print success statement and return df
+        print("Files have been fetched and processed")
         return df
+    
 
     except psycopg2.Error as e:
-        print("Failed to read data from table:", e)
+        print("Failed to read data from table:\n", e)
         
     finally:
         if (connection): # don't know why it's in parentheses
             connection.close()
-            print("The PostgreSQL connection is closed\nFiles have been\
- fetched and processed")
+            print("The PostgreSQL connection is closed")
