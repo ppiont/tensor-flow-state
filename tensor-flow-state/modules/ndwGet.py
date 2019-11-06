@@ -19,15 +19,15 @@ def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
         # Define query
         query = "WITH pts AS \
         (SELECT * FROM ndw.mst_points_latest WHERE mst_id = '" + ID + "') \
-        SELECT b.date AS timestamp, \
+        SELECT b.date::timestamp without time zone AS timestamp, \
         ST_X(geom) AS lon, \
         ST_Y(geom) AS lat, \
         mst_id AS sensor_id, \
-        date_trunc('day', b.date) AS date, \
+        date_trunc('day', b.date::timestamp without time zone) AS date, \
         date_part('hour', b.date)::SMALLINT, \
         date_part('minute', b.date)::SMALLINT as minute, \
         (date_part('dow', b.date)::SMALLINT + 1) AS weekday, \
-        b.flow_sum::INTEGER AS flow, \
+        (b.flow_sum / 60)::INTEGER AS flow, \
         b.speed_avg::SMALLINT AS speed \
         FROM pts AS a \
         INNER JOIN ndw.trafficspeed AS b \
@@ -45,10 +45,20 @@ def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
                                      'date', 'hour', 'minute', 'weekday', 
                                      'flow', 'speed'])
         
-        # Remove timezone
-        df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_convert(None)
-        df['date'] = pd.to_datetime(df['date']).dt.tz_convert(None)
         
+        # # Convert to pd tz
+        # df['timestamp'] = pd.to_datetime(df.timestamp, utc=True).dt.tz_convert('Europe/Amsterdam')
+        # df['date'] = pd.to_datetime(df.date, utc=True).dt.tz_convert('Europe/Amsterdam')
+        
+        # # Remove timezone
+        # df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
+        # df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
+        
+        # # format date
+        df['date'] = df['date'].dt.strftime("%Y-%m-%d")
+        
+        
+            
         # Create hour/minute cols with continuously spaced vals (sine, cosine)
         df['hour_sine'] = np.sin(2 * np.pi * df.hour / 24)
         df['hour_cosine'] = np.cos(2 * np.pi * df.hour / 24)

@@ -42,7 +42,7 @@ df = pd.merge(traffic_data, weather_data, how='left', on = ['date', 'hour']) #Fi
 #df.dropna(inplace=True)
 
 # Save to pickle
-df.to_pickle(datadir + 'RWS01_MONIBAS_0021hrl0414ra_5months_incl_weather.pkl')
+traffic_data.to_pickle(datadir + 'RWS01_MONIBAS_0021hrl0414ra_jun_oct.pkl')
 
 
 
