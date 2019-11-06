@@ -17,6 +17,9 @@ import seaborn as sns
 # Set working dir
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
+# Import homebrew
+from modules.fixStandardTime2019 import fixStandardTime2019
+
 # Define directories
 datadir = "./data/"
 plotdir = './plots/'
@@ -31,27 +34,18 @@ pd.options.display.float_format = '{:.2f}'.format
 
 df = pd.read_pickle(datadir + 'RWS01_MONIBAS_0021hrl0414ra_jun_oct.pkl')
 
+df = fixStandardTime2019(df)
 
-# # Check timestamp crap
-print(df[(df['timestamp'] > pd.to_datetime('2019-10-27 01:49:00')) & (df['timestamp'] < pd.to_datetime('2019-10-27 03:01:00'))][['timestamp', 'hour', 'minute', 'flow', 'speed']].reset_index())
 
-idx_start = df[df.timestamp == '2019-10-27 01:56:00'].index[1]
-idx_stop = df[df.timestamp == '2019-10-27 02:59:00'].index[-1]
-
-# Loop through, fixing vals
-for i in range(idx_start, idx_stop):
-    offset = i - idx_start + 1
-    df.iat[i, df.columns.get_loc('timestamp')] += pd.Timedelta(minutes=offset)
-    
-# Remove/fix extra observations that glitched during DST change
-df[df['timestamp'] == pd.to_datetime('2019-10-27 02:58:00')] -= pd.Timedelta(minutes=1)
-df.iat[(df[df['timestamp'] == pd.to_datetime('2019-10-27 02:57:00')].index.values[0]+1), df.columns.get_loc('timestamp')] -= pd.Timedelta(minutes=1)
+## There are duplicates!! remove them
+print(df[df.duplicated('timestamp', False)][['timestamp', 'speed']].head(100))
 
 
 
 
 
-print(df.iloc[195743:195745]['timestamp'] - pd.Timedelta(minutes=1))
+
+
 
 
 
