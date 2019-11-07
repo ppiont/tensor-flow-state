@@ -23,8 +23,8 @@ def repairTimeSeries(dataframe, timestamp_col = 'timestamp', fillna_method = 'pa
     # Add filled timestamps from index into timestamp col as well
     dataframe[timestamp_col] = dataframe.index
     
-    # # Return to RangeIndex
-    # dataframe.reset_index(drop = True, inplace = True)
+    # Return to RangeIndex
+    dataframe.reset_index(drop = True, inplace = True)
     
     # # Pad null values with the previous valid value
     # dataframe.fillna(method = fillna_method, inplace = True)

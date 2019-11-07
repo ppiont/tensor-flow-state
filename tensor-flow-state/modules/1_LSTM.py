@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 
+
 # Stats
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
@@ -40,52 +41,72 @@ df = pd.read_pickle(datadir + 'RWS01_MONIBAS_0021hrl0414ra_jun_oct.pkl')[['times
 # Repair time series
 df = repairTimeSeries(df, 'timestamp', 'pad')
 
-# Fix null vals
+# Fetch date vals for new rows
 df['date'] = df.timestamp.dt.date
 
-# Find cols with null vals to fill statically (excludes speed and flow)
+# Find cols with null vals to be filled statically (excludes speed and flow)
 nan_cols = [col for col in df.columns[df.isna().any()].tolist() if col not in ('speed', 'flow')]
+
 # Fill said cols with static vals
 df[nan_cols] = df[nan_cols].fillna('pad')
 
 
-df.isna().any()
+# Interpolate the first week of data for speed and flow
+df.iloc[:7 * 24 * 60 + 1, df.columns.get_loc('speed')] = df['speed'][:7 * 24 * 60 + 1].interpolate(method = 'linear')
+df.iloc[:7 * 24 * 60 + 1, df.columns.get_loc('flow')] = df['flow'][:7 * 24 * 60 + 1].interpolate(method = 'linear')
 
 
+# Replace remaining nulls with value from 1 week previous
+speed_col = df.columns.get_loc('speed'); flow_col = df.columns.get_loc('flow'); check = speed_col + 1; week = 7*24*60
+
+for row in df.itertuples():
+    if np.isnan(row[check]):
+        df.iat[row[0], speed_col] = df.iat[(row[0] - week), speed_col]
+        df.iat[row[0], flow_col] = df.iat[(row[0] - week), flow_col]
 
 
-
-
-
+# Make ts, hist, ac and pac plots
+tsPlot(df['speed'], 'Speed')
 tsPlot(df['flow'], 'Flow')
-tsPlot(test['speed'], 'Speed')
+
+
+tsPlot(df['speed'][:7*24*60], 'Speed')
 
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+speed_col = df.columns.get_loc('speed')
+flow_col = df.columns.get_loc('flow')
+# For remaining nulls, take value from previous week at same time
+for i in np.arange(df.shape[0])[df['speed'].isna()]:
+    df.iloc[i, speed_col] = df.iat[i - (7*24*60), speed_col]
+    df.iloc[i, flow_col] = df.iat[i - (7*24*60), flow_col]
+    
+def func(x):
+    if np.isnan(x):
+        return ...
+    else: return x
+df.speed.apply(func)
 
 
 test = df.interpolate(method = 'time', axis = 0)
 
+nan_val = df[df['speed'].isna()].speed
 
-
-
-
-
-
-where nan
-replace with val in same col 1 day ago
-
-
-
-
-
-
-
-
-
+test = df['speed'].shift(freq='D')
 
 print(df[(df['timestamp'] > pd.to_datetime('2019-09-14')) &  (df['timestamp'] < pd.to_datetime('2019-09-16'))])
 print(df[df['date'] == '2019-10-15'])
