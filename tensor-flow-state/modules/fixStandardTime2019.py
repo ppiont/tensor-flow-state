@@ -17,40 +17,28 @@ def fixStandardTime2019(df):
     idx_stop = df[df.timestamp == '2019-10-27 02:59:00'].index[0]
     col_idx = df.columns.get_loc('timestamp')
     
+    hour = True if 'hour' in df.columns else False
+    minute = True if 'minute' in df.columns else False
+    
     # Replace duplicate values with correct offset from last unique timestamp
     for i in range (idx_start, idx_stop + 1):
         offset = i - idx_start + 1
         df.iat[i, col_idx] = pd.to_datetime('2019-10-27 01:56:00') + \
             pd.Timedelta(minutes=offset)
-
+        if hour:
+            df.at[df.index[i], 'hour'] = int(df.iat[i, col_idx].strftime('%H'))
+        if minute:
+            df.at[df.index[i], 'minute'] = int(df.iat[i, col_idx].strftime('%M'))
+            
     # Delete remaining extraneous rows
-    rows_for_deletion = df[df.timestamp == '2019-10-27 02:59:00'].index[1:]
-    df.drop(rows_for_deletion, inplace = True)
-    df.reset_index(inplace = True)
+    df.drop_duplicates(inplace = True)
+    df.reset_index(drop = True, inplace = True)
     
-   
-
-    # # Redo cols that were dependant on timestamp
-    # ['datetime']
-    # if 'hour' in df.columns:
-    #     idx_start = df[df.timestamp == '2019-10-27 01:56:00'].index[0]
-    #     idx_stop = df[df.timestamp == '2019-10-27 02:59:00'].index[0] + 1
-    #     col_idx = df.columns.get_loc('hour')
-    #     for i in range (idx_start, idx_stop):
-    #     df.iat[i, col_idx] = df.iloc['datetime'].dt.hour
-    # df['minute'] = df['datetime'].dt.minute
-        
-    
-    # # create hour/minute cols with continuously spaced vals (sine, cosine)
-    # df['hour_sine'] = np.sin(2*np.pi*df.hour/24)
-    # df['hour_cosine'] = np.cos(2*np.pi*df.hour/24)
-    # df['minute_sine'] = np.sin(2*np.pi*df.minute/60)
-    # df['minute_cosine'] = np.cos(2*np.pi*df.minute/60)
-        
-    # Check manually if the transition values have been fixed
-    print(df[(df['timestamp'] > pd.to_datetime('2019-10-27 01:49:00')) & \
-             (df['timestamp'] < pd.to_datetime('2019-10-27 03:11:00'))]\
-              [['timestamp', 'hour', 'minute', 'flow', 'speed']])
+    # # Check manually if the transition values have been fixed
+    # print(df[(df['timestamp'] > pd.to_datetime('2019-10-27 01:49:00')) & \
+    #          (df['timestamp'] < pd.to_datetime('2019-10-27 03:11:00'))]\
+    #           [['timestamp', 'hour', 'minute', 'flow', 'speed']])
         
     # Return fixed dataframe
     return df
+        

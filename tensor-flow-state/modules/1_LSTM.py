@@ -1,18 +1,18 @@
 # Import libraries
 import os
 import pandas as pd
-from datetime import datetime as dt
+import numpy as np
 
 # Stats
-import statsmodels.api as sm
-import statsmodels.formula.api as smf
-import statsmodels.tsa.api as smt
-from scipy import signal
+# import statsmodels.api as sm
+# import statsmodels.formula.api as smf
+# import statsmodels.tsa.api as smt
+# from scipy import signal
 
 
 # Display and Plotting
 import matplotlib.pyplot as plt
-import seaborn as sns
+# import seaborn as sns
 
 # Set working dir
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
@@ -34,19 +34,31 @@ pd.options.display.float_format = '{:.2f}'.format
 
 df = pd.read_pickle(datadir + 'RWS01_MONIBAS_0021hrl0414ra_jun_oct.pkl')
 
+print(df.shape)
 df = fixStandardTime2019(df)
+print(df.shape)
+
+print(df[df['date'] == '2019-10-15']['timestamp'])
+
+# Make sure the series to pass to DateTimeIndex is explicitly datetime
+datetime_series = pd.to_datetime(df['timestamp'])
+# Create DateTimeIndex passing the datetime series
+datetime_index = pd.DatetimeIndex(datetime_series.values)
+# Set the new index
+df.set_index(datetime_index, inplace = True)
+
+# Create a date_range for reindexing and filling missing dates
+new_index = pd.date_range(start = df.index[0], end = df.index[-1], freq = 'T')
+# Reindex 
+df = df.reindex(new_index)
 
 
-## There are duplicates!! remove them
-print(df[df.duplicated('timestamp', False)][['timestamp', 'speed']].head(100))
+print(df[df.duplicated(subset = 'timestamp', keep=False)])
 
 
 
 
-
-
-
-
+print(test)
 
 
 # # Define features and target
@@ -170,20 +182,5 @@ model.fit(X, y, epochs=10, verbose=1, validation_data=(Xt, yt))
 model.summary()
 
 yhat = model.predict(Xt)
-
-
-
-
-plt.plot(yhat)
-
-
-
-
-
-
-
-
-
-
 
 
