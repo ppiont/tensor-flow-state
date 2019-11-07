@@ -7,7 +7,8 @@ Created on Wed Nov  6 22:07:13 2019
 import pandas as pd
 
 def fixStandardTime2019(df):
-    """Replaces glitched timestamps with values that are consistent with 
+    """DEPRECATED AND USELESS:    
+    Replaces glitched timestamps with values that are consistent with 
     the rows surrounding them to maintain a contiguous time series.
     The code is very fragile as it is tailored specifically to fix the 
     transition from DST to standard time in ndw.trafficspeed on Metis10. """
