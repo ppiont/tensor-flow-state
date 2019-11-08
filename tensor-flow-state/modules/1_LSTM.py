@@ -3,7 +3,6 @@ import os
 import pandas as pd
 import numpy as np
 
-
 # Stats
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
@@ -28,7 +27,7 @@ plotdir = './plots/'
 # Don't limit, truncate or wrap columns displayed by pandas
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.max_rows', 500)
-pd.set_option('display.width', 200) # accepted line width before wrapping
+pd.set_option('display.width', 200) # Accepted line width before wrapping
 pd.set_option('display.max_colwidth', -1)
 # Display decimals instead of scientific with pandas
 pd.options.display.float_format = '{:.2f}'.format
@@ -39,30 +38,108 @@ pd.options.display.float_format = '{:.2f}'.format
 df = pd.read_pickle(datadir + 'RWS01_MONIBAS_0021hrl0414ra_jun_oct.pkl')[['timestamp', 'date', 'lon', 'lat', 'sensor_id', 'speed', 'flow']]
 
 # Repair time series
-df = repairTimeSeries(df, 'timestamp', 'pad')
+df = repairTimeSeries(dataframe = df, timestamp_col = 'timestamp', cols_not_to_fill = ['date', 'speed', 'flow'],
+                      fillna_method = 'pad', freq = 'T')
 
 # Fetch date vals for new rows
 df['date'] = df.timestamp.dt.date
 
-# Find cols with null vals to be filled statically (excludes speed and flow)
-nan_cols = [col for col in df.columns[df.isna().any()].tolist() if col not in ('speed', 'flow')]
 
-# Fill said cols with static vals
-df[nan_cols] = df[nan_cols].fillna('pad')
+# # Interpolate null vals for the first week of data of speed and flow cols
+# week = 7 * 24 * 60
+# df.iloc[:week + 1, df.columns.get_loc('speed')] = df['speed'][:week + 1].interpolate(method = 'time')
+# df.iloc[:week + 1, df.columns.get_loc('flow')] = df['flow'][:week + 1].interpolate(method = 'time')
+
+# # Return to RangeIndex for the next operation
+# df.reset_index(drop = True, inplace = True)
+
+# # Replace remaining nulls with value from 1 week previous
+# def shiftWeek(df):
+#     speed_col = df.columns.get_loc('speed')
+#     flow_col = df.columns.get_loc('flow')
+#     check = speed_col + 1
+#     week = 7 * 24 * 60
+#     for row in df.itertuples():
+#         if np.isnan(row[check]):
+#             df.iat[row[0], speed_col] = df.iat[(row[0] - week), speed_col]
+#             df.iat[row[0], flow_col] = df.iat[(row[0] - week), flow_col]
+#     return df
+
+# df = shiftWeek(df)
+
+# # Return to DateTimeIndex again
+# df.set_index(pd.DatetimeIndex(df.timestamp.values), inplace = True)
 
 
-# Interpolate the first week of data for speed and flow
-df.iloc[:7 * 24 * 60 + 1, df.columns.get_loc('speed')] = df['speed'][:7 * 24 * 60 + 1].interpolate(method = 'linear')
-df.iloc[:7 * 24 * 60 + 1, df.columns.get_loc('flow')] = df['flow'][:7 * 24 * 60 + 1].interpolate(method = 'linear')
 
 
-# Replace remaining nulls with value from 1 week previous
-speed_col = df.columns.get_loc('speed'); flow_col = df.columns.get_loc('flow'); check = speed_col + 1; week = 7*24*60
 
-for row in df.itertuples():
-    if np.isnan(row[check]):
-        df.iat[row[0], speed_col] = df.iat[(row[0] - week), speed_col]
-        df.iat[row[0], flow_col] = df.iat[(row[0] - week), flow_col]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Create a null col to plot distribution of missing values over time
+df['null'] = np.where(((df.speed.isna()) | (df.flow.isna())), 1, np.nan)
+
+nulls = df['null']
+
+nulls.plot()
+
+groups = nulls.groupby(pd.Grouper(freq='W'))
+for name, group in groups:
+    weeks = pd.DataFrame(data = group.values, columns = [name.month])
+    months.plot(subplots=True, legend=False)
+    plt.show()
+
+
+
+one = pd.DataFrame({'a': [1, 2, 3, 4], 'b': [5, 6, 7, 8]})
+two = pd.DataFrame({'a': [1, 2, 3, 4], 'b': [5, 6, 7, 8]})
+hello = [one, two]
+
+print(hello[0])
+
+
+fig = plt.figure(figsize=(15,10))
+df
+# layout = (2, 2)
+# ts_ax   = plt.subplot2grid(layout, (0, 0))
+# hist_ax = plt.subplot2grid(layout, (0, 1))
+# acf_ax  = plt.subplot2grid(layout, (1, 0))
+# pacf_ax = plt.subplot2grid(layout, (1, 1))
+
+null_df.plot(ax=ts_ax)
+ts_ax.set_title(title, fontsize=12, fontweight='bold')
+y.plot(ax=hist_ax, kind='hist', bins=25)
+hist_ax.set_title('Histogram')
+smt.graphics.plot_acf(y, lags=lags, ax=acf_ax)
+smt.graphics.plot_pacf(y, lags=lags, ax=pacf_ax)
+sns.despine()
+plt.tight_layout()
+plt.show()
+
+
+
+[print(null_df)]
+
+
+
+
 
 
 # Make ts, hist, ac and pac plots
@@ -76,15 +153,17 @@ tsPlot(df['speed'][:7*24*60], 'Speed')
 
 
 
+test = pd.DataFrame({'a': [1, 2, 3, 4], 'b': [5, 6, 7, 8]})
+print(test)
 
 
 
 
+print(df.columns[df.isna().any()].tolist())
 
 
 
-
-
+'flow' not in ['date', 'speed', 'flow']
 
 
 
