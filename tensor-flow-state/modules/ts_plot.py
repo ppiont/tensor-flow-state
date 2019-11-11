@@ -29,7 +29,7 @@ def correlation_plot(y, title, lags=None, figsize=(12, 8)):
     sns.despine()
     plt.tight_layout()
     plt.show()
-    return ts_ax, acf_ax, pacf_ax
+    return fig, ts_ax, acf_ax, pacf_ax
 
 def decompose_plot():
     # TODO: make smt stuff for decomp plot (trend, seasonality, residuals)

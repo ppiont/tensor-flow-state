@@ -73,8 +73,6 @@ df.set_index(pd.DatetimeIndex(df.timestamp.values), inplace = True)
 
 
 
-
-
 # Plot time series with 4 sampling ranges
 y = df.speed.copy()
 
@@ -105,12 +103,6 @@ y_hour = y.resample('H').mean()
 y_day = y.resample('D').mean()
 y_week = y.resample('W').mean()
 
-decomp = smt.seasonal_decompose(y_day, model = 'additive', freq =  7)
-decomp.plot()
-plt.show()
-
-
-
 decomp = smt.seasonal_decompose(y_hour, model = 'additive', freq = 24 * 7)
 fig =  plt.figure(figsize = (30, 15))
 fig.suptitle(f'RWS01_MONIBAS_0021hrl0414ra decomposed: hourly vals, weekly cycle', fontsize = 12, fontweight = 'bold', y = 0.995)
@@ -134,114 +126,8 @@ plt.savefig(plotdir + 'Time_series_decomposition__RWS01_MONIBAS_0021hrl0414ra__j
 plt.show()
 
 
-# temp_dict = {'hourly': y_hour, 'daily': y_day, 'weekly': y_week}
-# for key in temp_dict:
-#     decomp = smt.seasonal_decompose(temp_dict[key], model = 'additive')
-#     fig =  plt.figure(figsize = (12, 8))
-#     fig.suptitle(f'RWS01_MONIBAS_0021hrl0414ra, {key}', fontsize = 12, fontweight = 'bold', y = 1.01)
-#     layout = (4, 1)
-#     observed_ax = plt.subplot2grid(layout, (0, 0))
-#     observed_ax.set_ylabel('Observed')
-#     trend_ax = plt.subplot2grid(layout, (1, 0))
-#     trend_ax.set_ylabel('Trend')
-#     seasonal_ax = plt.subplot2grid(layout, (2, 0))
-#     seasonal_ax.set_ylabel('Seasonal')
-#     residual_ax = plt.subplot2grid(layout, (3, 0))
-#     residual_ax.set_ylabel('Residual')
-#     observed_ax.get_shared_x_axes().join(observed_ax, trend_ax, seasonal_ax, residual_ax)
-#     decomp.observed.plot(ax = observed_ax)
-#     decomp.trend.plot(ax = trend_ax)
-#     decomp.seasonal.plot(ax = seasonal_ax)
-#     decomp.resid.plot(ax = residual_ax)
-#     sns.despine()
-#     plt.tight_layout()
-#     plt.savefig(plotdir + f'Time_series_decomposition__RWS01_MONIBAS_0021hrl0414ra__jun_oct__{key}_seasonality.svg', dpi = 600)
-#     plt.show()
-
-
 # Make ts, hist, ac and pac plots
-correlation_plot(df['speed'], 'Speed', figsize = (20,10))
+fig = correlation_plot(df['speed'], 'Speed', figsize = (20,10))[0]
+fig.savefig(plotdir + 'Time_series_ACF_PACF_HIST__RWS01_MONIBAS_0021hrl0414ra__jun_oct.svg', dpi = 600)
 plt.show()
-fig.savefig(plotdir + 'Time_series_ACF_PACF_HIST__RWS01_MONIBAS_0021hrl0414ra__jun_oct.png', dpi = 600)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-fig = plt.figure(figsize = (12,8), dpi = 300)
-y = df.speed
-x = df.timestamp
-plt.plot(x, signal.savgol_filter(y, window_length = (24*60*7 + 1), polyorder = 4))
-
-
-
-
-
-
-
-
-downsampled = df.speed.resample('D').mean()
-result = smt.seasonal_decompose(downsampled, model='additive')
-result.plot()
-plt.show()
-
-
-
-
-
-
-# # # Define features and target
-# # features = ['timestamp', 'speed']
-# # target = ['speed']
-
-
-# # Create train and test df
-
-# train_data = df[df['date'] < '2019-10']
-# test_data = df[df['date'] > '2019-09']
-
-
-# train_data_10min = train_data.resample('10T').agg({'speed': 'mean', 'flow': 'sum'})
-# train_data_day = train_data.resample('D').agg({'speed': 'mean', 'flow': 'sum'})
-
-
-# # df.groupby(['name', pd.Grouper(key='date', freq='M')])['ext price'].sum()
-
-
-# # groups = plotting_data.groupby(pd.Grouper(freq='W'))  #key='weekday'))['speed'].mean().sort_index()
-# # weeks = pd.DataFrame()
-# # for name, group in groups:
-# # 	weeks[name] = group.values
-# # weeks.plot(subplots=True, legend=False)
-# # plt.show()
-
-
-# plot_test_10min = plot_test.resample('H').agg({'speed': 'mean', 'flow': 'sum'})
-
-# fig, ax = plt.subplots(figsize=(8,6));
-# ax.plot(plot_test_10min['timestamp'], plot_test['speed'])
-# fig.tight_layout();
-
-
-# train_data_day['speed'].plot(ax=ax)
-# ax.set_title('10m avg speed, Jun-Oct')
-# ax.set_ylabel('Kph');
-# ax.set_xlabel('Time');
-# ax.xaxis.set_ticks_position('bottom')
-# fig.tight_layout();
 
