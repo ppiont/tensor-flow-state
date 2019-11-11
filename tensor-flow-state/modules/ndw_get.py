@@ -7,13 +7,13 @@ import pandas as pd
 import psycopg2
 import holidays
 from sklearn.preprocessing import OneHotEncoder
-from modules.pgConnect import pgConnect
+from modules.pg_connect import pg_connect
 
-def ndwGet(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
+def ndw_get(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
     
     try:
         # Connect to postgres and create cursor
-        connection = pgConnect()
+        connection = pg_connect()
         cursor = connection.cursor()
         print("Connected to PostgreSQL")
         # Define query

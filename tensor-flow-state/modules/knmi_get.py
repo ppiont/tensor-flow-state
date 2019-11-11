@@ -2,7 +2,7 @@ from knmy import knmy
 import pandas as pd
 import numpy as np
 
-def knmiGet(start, end, stations=[240]):
+def knmi_get(start, end, stations=[240]):
     
     # knmy.get_hourly_data returns a tuple with 4 items. Immediately index to [3] to get the df with weather variables. 
     knmi_data = knmy.get_hourly_data(stations=[240], start=start, end=end,

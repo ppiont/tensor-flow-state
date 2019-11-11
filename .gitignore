@@ -4,6 +4,7 @@
 
 # ignore postgres connection script (it includes database pw)
 **/pgConnect.py
+**/pg_connect.py
 
 # ignore clickhouse.py test file as it includes db pw
 *clickhouse*

@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def tsPlot(y, title, lags=None, figsize=(12, 8)):
+def correlation_plot(y, title, lags=None, figsize=(12, 8)):
     fig = plt.figure(figsize=figsize)
     layout = (2, 2)
     ts_ax   = plt.subplot2grid(layout, (0, 0))
@@ -30,3 +30,8 @@ def tsPlot(y, title, lags=None, figsize=(12, 8)):
     plt.tight_layout()
     plt.show()
     return ts_ax, acf_ax, pacf_ax
+
+def decompose_plot():
+    # TODO: make smt stuff for decomp plot (trend, seasonality, residuals)
+    return 0;
+    

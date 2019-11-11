@@ -17,8 +17,8 @@ import seaborn as sns
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
 # Import homebrew
-from modules.repairTimeSeries import repairTimeSeries
-from modules.tsPlot import tsPlot
+from modules.repair_timeseries import repair_time_series
+from modules.ts_plot import correlation_plot, decompose_plot
 
 # Define directories
 datadir = "./data/"
@@ -38,52 +38,50 @@ pd.options.display.float_format = '{:.2f}'.format
 df = pd.read_pickle(datadir + 'RWS01_MONIBAS_0021hrl0414ra_jun_oct.pkl')[['timestamp', 'date', 'lon', 'lat', 'sensor_id', 'speed', 'flow']]
 
 # Repair time series
-df = repairTimeSeries(dataframe = df, timestamp_col = 'timestamp', cols_not_to_fill = ['date', 'speed', 'flow'],
+df = repair_time_series(dataframe = df, timestamp_col = 'timestamp', cols_not_to_fill = ['date', 'speed', 'flow'],
                       fillna_method = 'pad', freq = 'T')
 
 # Fetch date vals for new rows
 df['date'] = df.timestamp.dt.date
 
 
-# # Interpolate null vals for the first week of data of speed and flow cols
-# week = 7 * 24 * 60
-# df.iloc[:week + 1, df.columns.get_loc('speed')] = df['speed'][:week + 1].interpolate(method = 'time')
-# df.iloc[:week + 1, df.columns.get_loc('flow')] = df['flow'][:week + 1].interpolate(method = 'time')
+# Interpolate null vals for the first week of data of speed and flow cols
+week = 7 * 24 * 60
+df.iloc[:week + 1, df.columns.get_loc('speed')] = df['speed'][:week + 1].interpolate(method = 'time')
+df.iloc[:week + 1, df.columns.get_loc('flow')] = df['flow'][:week + 1].interpolate(method = 'time')
 
-# # Return to RangeIndex for the next operation
-# df.reset_index(drop = True, inplace = True)
+# Return to RangeIndex for the next operation
+df.reset_index(drop = True, inplace = True)
 
-# # Replace remaining nulls with value from 1 week previous
-# def shiftWeek(df):
-#     speed_col = df.columns.get_loc('speed')
-#     flow_col = df.columns.get_loc('flow')
-#     check = speed_col + 1
-#     week = 7 * 24 * 60
-#     for row in df.itertuples():
-#         if np.isnan(row[check]):
-#             df.iat[row[0], speed_col] = df.iat[(row[0] - week), speed_col]
-#             df.iat[row[0], flow_col] = df.iat[(row[0] - week), flow_col]
-#     return df
+# Replace remaining nulls with value from 1 week previous
+def shiftWeek(df):
+    speed_col = df.columns.get_loc('speed')
+    flow_col = df.columns.get_loc('flow')
+    check = speed_col + 1
+    week = 7 * 24 * 60
+    for row in df.itertuples():
+        if np.isnan(row[check]):
+            df.iat[row[0], speed_col] = df.iat[(row[0] - week), speed_col]
+            df.iat[row[0], flow_col] = df.iat[(row[0] - week), flow_col]
+    return df
 
-# df = shiftWeek(df)
+df = shiftWeek(df)
 
-# # Return to DateTimeIndex again
-# df.set_index(pd.DatetimeIndex(df.timestamp.values), inplace = True)
-
-
+# Return to DateTimeIndex again
+df.set_index(pd.DatetimeIndex(df.timestamp.values), inplace = True)
 
 
 
-
+downsampled = df.speed.resample('D').mean()
 
 
 
 
 
 
-
-
-
+result = smt.seasonal_decompose(downsampled, model='multiplicative')
+result.plot()
+plt.show()
 
 
 
@@ -92,13 +90,33 @@ df['date'] = df.timestamp.dt.date
 
 
 
+fig = plt.figure(figsize = (12,8), dpi = 300)
+y = df.speed
+x = df.timestamp
+plt.plot(x, signal.savgol_filter(y, window_length = (24*60*7 + 1), polyorder = 4))
 
-# Create a null col to plot distribution of missing values over time
-df['null'] = np.where(((df.speed.isna()) | (df.flow.isna())), 1, np.nan)
 
-nulls = df['null']
+downsampled = df.speed.resample('W').mean()
+print(downsampled)
+downsampled.plot()
+# august[['target_speed', 'missing']].plot(style=['b.', 'rx'], figsize=(20, 10))
 
-nulls.plot()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 groups = nulls.groupby(pd.Grouper(freq='W'))
 for name, group in groups:
@@ -143,53 +161,15 @@ plt.show()
 
 
 # Make ts, hist, ac and pac plots
-tsPlot(df['speed'], 'Speed')
-tsPlot(df['flow'], 'Flow')
+decomposePlot(df['speed'], 'Speed')
+decomposePlot(df['flow'], 'Flow')
 
 
-tsPlot(df['speed'][:7*24*60], 'Speed')
-
-
-
-
-
-test = pd.DataFrame({'a': [1, 2, 3, 4], 'b': [5, 6, 7, 8]})
-print(test)
+decomposePlot(df['speed'][:7*24*60], 'Speed')
 
 
 
 
-print(df.columns[df.isna().any()].tolist())
-
-
-
-'flow' not in ['date', 'speed', 'flow']
-
-
-
-speed_col = df.columns.get_loc('speed')
-flow_col = df.columns.get_loc('flow')
-# For remaining nulls, take value from previous week at same time
-for i in np.arange(df.shape[0])[df['speed'].isna()]:
-    df.iloc[i, speed_col] = df.iat[i - (7*24*60), speed_col]
-    df.iloc[i, flow_col] = df.iat[i - (7*24*60), flow_col]
-    
-def func(x):
-    if np.isnan(x):
-        return ...
-    else: return x
-df.speed.apply(func)
-
-
-test = df.interpolate(method = 'time', axis = 0)
-
-nan_val = df[df['speed'].isna()].speed
-
-test = df['speed'].shift(freq='D')
-
-print(df[(df['timestamp'] > pd.to_datetime('2019-09-14')) &  (df['timestamp'] < pd.to_datetime('2019-09-16'))])
-print(df[df['date'] == '2019-10-15'])
-print(df[df.duplicated(subset = 'timestamp', keep=False)])
 
 
 

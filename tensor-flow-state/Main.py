@@ -9,8 +9,8 @@ os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state
 
 # Import homebrew
 #from modules.pgConnect import pgConnect
-from modules.ndwGet import ndwGet
-from modules.knmiGet import knmiGet
+from modules.ndw_get import ndw_get
+from modules.knmi_get import knmi_get
 
 # Define directories
 datadir = "./data/"
@@ -31,10 +31,10 @@ pd.set_option('display.max_colwidth', -1)
 pd.options.display.float_format = '{:.2f}'.format
 
 # Fetch traffic data
-traffic_data = ndwGet('06-01-2019', '10-31-2019', 'RWS01_MONIBAS_0021hrl0414ra')
+traffic_data = ndw_get('06-01-2019', '10-31-2019', 'RWS01_MONIBAS_0021hrl0414ra')
 
 # Get weather data (from Schiphol as defualt)
-weather_data = knmiGet('2019060101', '2019103124', [240])
+weather_data = knmi_get('2019060101', '2019103124', [240])
 
 df = pd.merge(traffic_data, weather_data, how='left', on = ['date', 'hour']) #Fix
 
