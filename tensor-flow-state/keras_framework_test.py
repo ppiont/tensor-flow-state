@@ -23,17 +23,17 @@ plotdir = "./plots/"
 #test_data = df[df['datetime'] > '2019-07-31']
 #
 ## define features and target
-#features = ['minute_sine', 'minute_cosine', 'hour_sine', 'hour_cosine', 'monday', 
+#features = ['minute_sine', 'minute_cosine', 'hour_sine', 'hour_cosine', 'monday',
 #            'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-#            'weekend', 'holiday', 'speed', 'windspeed_avg', 'windspeed_max', 
+#            'weekend', 'holiday', 'speed', 'windspeed_avg', 'windspeed_max',
 #            'temperature', 'sunduration', 'sunradiation', 'precipitationduration',
-#            'precipitation', 'airpressure', 'relativehumidity', 'mist', 'rain', 
+#            'precipitation', 'airpressure', 'relativehumidity', 'mist', 'rain',
 #            'snow', 'storm', 'ice']
 #target =    ['flow']
 #
 ## create train and test sets
 #X_train, y_train, X_test, y_test = train_data[features], train_data[target], \
-#                                test_data[features],test_data[target]                                
+#                                test_data[features],test_data[target]
 #
 ## split a univariate sequence into samples
 #def split_sequence(sequence, n_steps):
@@ -97,8 +97,8 @@ def build_nn(model_specs):
 #        layer = tf.keras.layers.LSTM                                           # problem with return_sequence defaulting as False
     else:
         sys.exit("Only layers of type 'Dense' are currently supported.")
-        
-        
+
+
     try:
         if model_specs["Regularization"] == "l2":                               # if using L2 regularization
             lambda_ = model_specs['Reg param']                                  # get lambda parameter
@@ -125,20 +125,20 @@ def build_nn(model_specs):
     for lay, act, i in zip(hidden, acts, range(len(hidden))):                   # create all the hidden layers
         if lambda_ > 0:                                                         # if doing L2 regularization
             if not first_hidden:
-                model.add(layer(lay, activation=act, 
-                        W_regularizer=tf.keras.regularizers.l2(lambda_), 
+                model.add(layer(lay, activation=act,
+                        W_regularizer=tf.keras.regularizers.l2(lambda_),
                         input_shape=(hidden[i - 1],)))                          # add additional layers
             else:
-                model.add(layer(lay, activation=act, 
-                        W_regularizer=tf.keras.regularizers.l2(lambda_), 
+                model.add(layer(lay, activation=act,
+                        W_regularizer=tf.keras.regularizers.l2(lambda_),
                         input_shape=model_specs['Input size']))
                 first_hidden = False
         else:                                                                   # if not regularizing
             if not first_hidden:
-                model.add(layer(lay, 
+                model.add(layer(lay,
                                     input_shape=(hidden[i-1], )))               # add un-regularized layers
             else:
-                model.add(layer(lay, 
+                model.add(layer(lay,
                                     input_shape=model_specs['Input size']))     # if its first layer, connect it to the input layer
                 first_hidden = False
 
@@ -164,8 +164,8 @@ def build_nn(model_specs):
                                                                   )))           # add batch norm layer
 
     if model_specs['Optimization'] == 'adagrad':                                # set an optimization method
-        opt = tf.keras.optimizers.Adagrad(lr = model_specs["Learning rate"])
-    elif model_specs['Optimization'] == 'rmsprop':
+        opt = tf.keras.optimizers.Adagrad(lr = model_specs["Learning rate"])    # if you're ever going to use this, please do not use a for loop..
+    elif model_specs['Optimization'] == 'rmsprop':                              # {}^^ Note to self
         opt = tf.keras.optimizers.RMSprop(lr = model_specs["Learning rate"])
     elif model_specs['Optimization'] == 'adam':
         opt = tf.keras.optimizers.Adam(lr = model_specs["Learning rate"])
@@ -175,8 +175,8 @@ def build_nn(model_specs):
         opt = tf.keras.optimizers.Adamax(lr = model_specs["Learning rate"])
     else:
         opt = tf.keras.optimizers.Nadam(lr = model_specs["Learning rate"])
-        
-    model.compile(optimizer=opt, loss='mse', 
+
+    model.compile(optimizer=opt, loss='mse',
                   metrics=model_specs['Metrics'])                               # compile model
 
     return model

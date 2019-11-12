@@ -1,6 +1,7 @@
 # don't track these folders
 **/data/
 **/plots/
+**/exercise/
 
 # ignore postgres connection script (it includes database pw)
 **/pgConnect.py

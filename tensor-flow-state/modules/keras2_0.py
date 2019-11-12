@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from sklearn import preprocessing
 
 # set working dir
-os.chdir("C:/Users/peterpiontek/Google Drive/Geodan/DL")
+os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
 # import homebrew
 

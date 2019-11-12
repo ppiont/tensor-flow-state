@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "C:\Users\peterpiontek\AppData\Local\Continuum\anaconda3\envs\test\lib\site-packages\spyder\app\mainwindow.py", line 3657, in main
+    mainwindow = run_spyder(app, options, args)
+  File "C:\Users\peterpiontek\AppData\Local\Continuum\anaconda3\envs\test\lib\site-packages\spyder\app\mainwindow.py", line 3496, in run_spyder
+    main = MainWindow(options)
+  File "C:\Users\peterpiontek\AppData\Local\Continuum\anaconda3\envs\test\lib\site-packages\spyder\app\mainwindow.py", line 433, in __init__
+    from spyder.preferences.appearance import AppearanceConfigPage
+  File "C:\Users\peterpiontek\AppData\Local\Continuum\anaconda3\envs\test\lib\site-packages\spyder\preferences\appearance.py", line 20, in <module>
+    from spyder.plugins.editor.widgets.codeeditor import CodeEditor
+  File "C:\Users\peterpiontek\AppData\Local\Continuum\anaconda3\envs\test\lib\site-packages\spyder\plugins\editor\widgets\codeeditor.py", line 62, in <module>
+    from spyder.plugins.completion.kite.widgets.calltoaction import (
+ModuleNotFoundError: No module named 'spyder.plugins.completion.kite'

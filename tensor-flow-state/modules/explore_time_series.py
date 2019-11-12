@@ -4,13 +4,9 @@ import pandas as pd
 import numpy as np
 
 # Stats
-import statsmodels.api as sm
-import statsmodels.formula.api as smf
 import statsmodels.tsa.api as smt
-from scipy import signal
 
 # Display and Plotting
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -71,7 +67,7 @@ df = shiftWeek(df)
 # Return to DateTimeIndex again
 df.set_index(pd.DatetimeIndex(df.timestamp.values), inplace = True)
 
-
+# df.to_pickle(os.path.join(datadir, 'RWS01_MONIBAS_0021hrl0414ra_jun_oct_repaired.pkl'))
 
 # Plot time series with 4 sampling ranges
 y = df.speed.copy()
