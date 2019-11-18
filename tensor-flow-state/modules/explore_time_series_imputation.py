@@ -20,7 +20,7 @@ import seaborn as sns
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
 # Import homebrew
-from modules.repairTimeSeries import repairTimeSeries
+from modules.repair_time_series import repair_time_series
 
 # Define directories
 datadir = "./data/"
@@ -34,26 +34,37 @@ pd.set_option('display.max_colwidth', -1)
 # Display decimals instead of scientific with pandas
 pd.options.display.float_format = '{:.2f}'.format
 
+plt.rcParams['figure.figsize'] = 16, 9
+plt.rcParams['figure.dpi'] = 300
+plt.rcParams['savefig.dpi'] = 600
+plt.rcParams['image.cmap'] = 'viridis'
+
 ###############################################################################
 
 # Read timeseries to dataframe
 timeseries = pd.read_pickle(datadir + 'RWS01_MONIBAS_0021hrl0414ra_jun_oct.pkl')[['timestamp', 'date', 'speed', 'flow']]
 
 # Repair timeseries (add missing timestamps and remove duplicates)
-timeseries = repairTimeSeries(dataframe = timeseries, timestamp_col = 'timestamp', cols_not_to_fill = ['date', 'speed', 'flow'],
+timeseries = repair_time_series(dataframe = timeseries, timestamp_col = 'timestamp', cols_not_to_fill = ['date', 'speed', 'flow'],
                       fillna_method = 'pad', freq = 'T')
 
 # Fill in missing date vals
 timeseries['date'] =  timeseries.timestamp.dt.date
 
 # Plot timeseries
-timeseries['speed'].plot()
+timeseries['speed'].plot(title = 'Speed (raw)')
+sns.despine()
+plt.tight_layout()
+# Save
+# plt.rcParams['agg.path.chunksize'] = 100000
+plt.savefig(plotdir + 'speed_raw.png')
 
 # August looks fairly complete so let's, make sure
 timeseries['null'] = np.where(((timeseries.speed.isna()) | (timeseries.flow.isna())), 1, np.nan)
 timeseries.groupby(pd.Grouper(key='timestamp', freq='M'))['null'].sum()
+# timeseries['speed'].isna().sum()
 
-timeseries['speed'].isna().sum()
+
 
 # August is the most complete, so we move on with it as our test case
 august = timeseries[timeseries['timestamp'].dt.month == 8][['speed']]
@@ -65,14 +76,18 @@ august = august.assign(missing = np.nan)
 august.missing[august.speed.isna()] = august.reference_speed
 
 # Plot it (red are missing)
-august[['speed', 'missing']].plot(style=['b.', 'rx'], figsize=(20, 10))
+august[['speed', 'missing']].plot(style = ['b.', 'rx'], figsize = (16, 9), alpha = 0.6, title = 'August')
+sns.despine()
+plt.tight_layout()
+plt.savefig(plotdir + 'August.png')
+
 
 # Luckily they are not all clumped, so the interpolation should be smooth
 
 # Now drop unnecessary speed col
 august.drop('speed', axis = 1, inplace = True)
 
-# There are no null vals left since we already interoplated reference_sped.
+# There are no null vals left since we already interpolated reference_speed.
 august['reference_speed'].isnull().any()
 
 # Randomly null out 10% of the values in a new col target_speed that we want to test interpolation methods on
@@ -88,7 +103,10 @@ august.missing[august.target_speed.isna()] = august.reference_speed
 august.info()
 
 # Plot it (red are missing)
-august[['target_speed', 'missing']].plot(style=['b.', 'rx'], figsize=(20, 10))
+august[['target_speed', 'missing']].plot(style=['b.', 'rx'], figsize=(16, 9), alpha = 0.6, title = 'August /w 10% data removed')
+sns.despine()
+plt.tight_layout()
+plt.savefig(plotdir + 'August_10p_removed.png')
 
 # Apply different interpolation methods (this can take a little while)
 # Mean interpolation
@@ -128,17 +146,6 @@ results_df = pd.DataFrame(np.array(results), columns=['method', 'R2'])
 results_df = results_df.sort_values(by = 'R2', ascending=False).reset_index(drop = True)
 results_df.index += 1
 print(results_df)
-
-
-
-
-
-
-
-
-
-
-
 
 
 

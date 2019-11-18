@@ -14,7 +14,7 @@ import seaborn as sns
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
 # Import homebrew
-from modules.repair_timeseries import repair_time_series
+from modules.repair_time_series import repair_time_series
 from modules.ts_plot import correlation_plot, decompose_plot
 
 # Define directories
@@ -72,7 +72,7 @@ df.set_index(pd.DatetimeIndex(df.timestamp.values), inplace = True)
 # Plot time series with 4 sampling ranges
 y = df.speed.copy()
 
-fig =  plt.figure(figsize = (12, 8))
+fig =  plt.figure(figsize = (16, 9))
 fig.suptitle('RWS01_MONIBAS_0021hrl0414ra', fontsize = 12, fontweight = 'bold', y = 1.04)
 layout = (4, 1)
 min_ax = plt.subplot2grid(layout, (0, 0))
@@ -90,7 +90,7 @@ y.resample('D').mean().plot(ax = day_ax)
 y.resample('W').mean().plot(ax = week_ax)
 sns.despine()
 plt.tight_layout()
-# fig.savefig(plotdir + 'Time_series__4_samplings__RWS01_MONIBAS_0021hrl0414ra__jun_oct.svg', dpi = 600)
+fig.savefig(plotdir + 'Time_series__4_samplings__RWS01_MONIBAS_0021hrl0414ra__jun_oct.svg', dpi = 600)
 plt.show()
 
 
@@ -100,7 +100,7 @@ y_day = y.resample('D').mean()
 y_week = y.resample('W').mean()
 
 decomp = smt.seasonal_decompose(y_hour, model = 'additive', freq = 24 * 7)
-fig =  plt.figure(figsize = (30, 15))
+fig =  plt.figure(figsize = (16, 9))
 fig.suptitle(f'RWS01_MONIBAS_0021hrl0414ra decomposed: hourly vals, weekly cycle', fontsize = 12, fontweight = 'bold', y = 0.995)
 layout = (4, 1)
 observed_ax = plt.subplot2grid(layout, (0, 0))
@@ -118,12 +118,12 @@ decomp.seasonal.plot(ax = seasonal_ax)
 decomp.resid.plot(ax = residual_ax)
 sns.despine()
 plt.tight_layout()
-plt.savefig(plotdir + 'Time_series_decomposition__RWS01_MONIBAS_0021hrl0414ra__jun_oct__weekly_seasonality.png', dpi = 600)
+plt.savefig(plotdir + 'Time_series_decomposition__RWS01_MONIBAS_0021hrl0414ra__jun_oct__weekly_seasonality.svg', dpi = 600)
 plt.show()
 
 
 # Make ts, hist, ac and pac plots
-fig = correlation_plot(df['speed'], 'Speed', figsize = (20,10))[0]
-fig.savefig(plotdir + 'Time_series_ACF_PACF_HIST__RWS01_MONIBAS_0021hrl0414ra__jun_oct.svg', dpi = 600)
+fig = correlation_plot(df['speed'], 'Speed', figsize = (16,9))[0]
+fig.savefig(plotdir + 'Time_series_ACF_PACF_HIST__RWS01_MONIBAS_0021hrl0414ra__jun_oct.png', dpi = 600)
 plt.show()
 
