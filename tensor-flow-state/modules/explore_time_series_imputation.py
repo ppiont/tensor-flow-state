@@ -34,7 +34,7 @@ pd.set_option('display.max_colwidth', -1)
 # Display decimals instead of scientific with pandas
 pd.options.display.float_format = '{:.2f}'.format
 
-plt.rcParams['figure.figsize'] = 16, 9
+plt.rcParams['figure.figsize'] = (16, 9)
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 600
 plt.rcParams['image.cmap'] = 'viridis'
@@ -58,6 +58,24 @@ plt.tight_layout()
 # Save
 # plt.rcParams['agg.path.chunksize'] = 100000
 plt.savefig(plotdir + 'speed_raw.png')
+
+
+
+
+# timeseries_repaired = pd.read_pickle(os.path.join(datadir, 'RWS01_MONIBAS_0021hrl0414ra_jun_oct_repaired.pkl'))
+
+# merged = pd.DataFrame()
+# merged['raw'] = timeseries['speed']
+# merged['complete'] = timeseries_repaired['speed']
+# merged['fixed'] = np.nan
+# merged.fixed[merged.raw.isna()] = merged.complete
+# plt.rcParams['agg.path.chunksize'] = 50000
+# merged[['raw', 'fixed']].plot(style = ['b-', 'g-'], figsize = (16, 9), title = 'Speed (imputed)')
+# sns.despine()
+# plt.tight_layout()
+# plt.savefig(plotdir + 'Time_series_imputed.png', dpi = 600)
+
+
 
 # August looks fairly complete so let's, make sure
 timeseries['null'] = np.where(((timeseries.speed.isna()) | (timeseries.flow.isna())), 1, np.nan)
@@ -148,7 +166,10 @@ results_df.index += 1
 print(results_df)
 
 
-
+# august['InterpolateTime'].plot(style=['b-'], figsize=(16, 9), alpha = 0.6, title = 'August (time interpolated)')
+# sns.despine()
+# plt.tight_layout()
+# plt.savefig(plotdir + 'August_time_interpolated.png')
 
 
 

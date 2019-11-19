@@ -18,7 +18,7 @@ datadir = "./data/"
 plotdir = './plots/'
 
 # import homebrew
-from modules.ndwGet import ndwGet
+from modules.ndw_get import ndw_get
 
 one_north,two_north = 'RWS01_MONIBAS_0021hrl0339ra','RWS01_MONIBAS_0021hrl0336ra'
 from_date, to_date = '06-01-2019','06-07-2019'
