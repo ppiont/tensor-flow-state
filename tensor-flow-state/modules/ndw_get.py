@@ -1,6 +1,8 @@
 ### NDW import module ###
-
+# The whole setup needs to be changed when leda is online (including pg_connect)
+# RIP Metis
 # Note to self: date_trunc with modulo magic then avg(speed) sum(flow) for aggregating time 
+
 
 import numpy as np
 import pandas as pd

@@ -33,11 +33,22 @@ pd.options.display.float_format = '{:.2f}'.format
 
 plt.rcParams['figure.figsize'] = (16, 9)
 
-# Load data
-fname =  os.path.join(datadir, 'RWS01_MONIBAS_0021hrl0414ra_jun_oct_repaired.pkl')
-df = pd.read_pickle(fname)
+# Load pickle
+pname =  os.path.join(datadir, 'RWS01_MONIBAS_0021hrl0414ra_jun_oct_repaired.pkl')
+df = pd.read_pickle(pname)
+# df = df[['speed]]
 
-df.drop(['timestamp', 'date', 'lon', 'lat', 'flow', 'sensor_id'], axis = 1, inplace = True)
+# Load feather
+fname =  os.path.join(datadir, 'RWS01_MONIBAS_0021hrl0414ra_jun_oct_repaired.feather')
+df = pd.read_feather(fname) 
+df.set_index('timestamp', inplace = True, drop = True)
+
+df['speed_limit'] = 100 
+df.speed_limit[(df.index.strftime('%-H').astype(np.int8) >= 19) & (df.index.strftime('%-H').astype(np.int9) < 6)] = 120
+# 6-19 100
+# 19-6 120
+
+
 
 ## normalize
 ## more relevant features?
