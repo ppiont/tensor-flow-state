@@ -18,7 +18,7 @@ import seaborn as sns
 from sklearn.metrics import r2_score, mean_absolute_error
 
 # Set working dir
-os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")s
+os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
 # Define directories
 datadir = "./data/"
@@ -45,6 +45,9 @@ df.drop(['timestamp', 'date', 'lon', 'lat', 'flow', 'sensor_id'], axis = 1, inpl
 # plt.tight_layout()
 # plt.savefig(plotdir + 'distplot.png', dpi = 600)
 
+### Improve below!!
+# for mins in [1, 5, 10, 15, 30, 45, 60]:
+#     df[f'lag_{mins}'] = df.speed.shift(mins).fillna('bfill').copy()
 df['lag_1'] = df['speed'].shift(1).fillna(method = 'bfill').copy()
 df['lag_5'] = df['speed'].shift(5).fillna(method = 'bfill').copy()
 df['lag_10'] = df['speed'].shift(10).fillna(method = 'bfill').copy()
