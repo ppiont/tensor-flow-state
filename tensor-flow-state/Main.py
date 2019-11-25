@@ -3,6 +3,7 @@
 # Import libraries
 import os
 import pandas as pd
+import feather
 
 # Set working dir
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
@@ -10,7 +11,7 @@ os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state
 # Import homebrew
 #from modules.pgConnect import pgConnect
 from modules.ndw_get import ndw_get
-from modules.knmi_get import knmi_get
+# from modules.knmi_get import knmi_get
 
 # Define directories
 datadir = "./data/"

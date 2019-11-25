@@ -29,7 +29,7 @@ pd.set_option('display.max_colwidth', -1)
 # Display decimals instead of scientific with pandas
 pd.options.display.float_format = '{:.2f}'.format
 
-###############################################################################
+################################## Repair TS ##################################
 
 # Read df
 df = pd.read_pickle(datadir + 'RWS01_MONIBAS_0021hrl0414ra_jun_oct.pkl')[['timestamp', 'date', 'lon', 'lat', 'sensor_id', 'speed', 'flow']]
@@ -68,6 +68,8 @@ df = shiftWeek(df)
 df.set_index(pd.DatetimeIndex(df.timestamp.values), inplace = True)
 
 # df.to_pickle(os.path.join(datadir, 'RWS01_MONIBAS_0021hrl0414ra_jun_oct_repaired.pkl'))
+
+###############################################################################
 
 # Plot time series with 4 sampling ranges
 y = df.speed.copy()

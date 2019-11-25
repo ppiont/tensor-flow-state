@@ -9,7 +9,9 @@ import holidays
 from sklearn.preprocessing import OneHotEncoder
 from modules.pg_connect import pg_connect
 
-def ndw_get(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
+def ndw_get(start, end, ID = 'RWS01_MONIBAS_0021hrl0414ra'):
+    
+    connection = 0
     
     try:
         # Connect to postgres and create cursor
@@ -41,8 +43,8 @@ def ndw_get(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
 
         # Fetch all to pandas df
         df = pd.DataFrame(cursor.fetchall(), \
-                          columns = ['timestamp', 'lon', 'lat', 'sensor_id', 
-                                     'date', 'hour', 'minute', 'weekday', 
+                          columns = ['timestamp', 'lon', 'lat', 'sensor_id', \
+                                     'date', 'hour', 'minute', 'weekday', \
                                      'flow', 'speed'])
         
         
@@ -58,7 +60,6 @@ def ndw_get(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
         df['date'] = df['date'].dt.strftime("%Y-%m-%d")
         
         
-            
         # Create hour/minute cols with continuously spaced vals (sine, cosine)
         df['hour_sine'] = np.sin(2 * np.pi * df.hour / 24)
         df['hour_cosine'] = np.cos(2 * np.pi * df.hour / 24)
@@ -75,7 +76,7 @@ def ndw_get(start, end, ID='RWS01_MONIBAS_0021hrl0339ra'):
         onehot_encoder = OneHotEncoder(sparse=False, categories = 'auto')
         integer_encoded = df.weekday.values.reshape(len(df.weekday), 1)
         onehot_encoded = onehot_encoder.fit_transform(integer_encoded)
-        days = ['monday','tuesday','wednesday','thursday','friday','saturday',
+        days = ['monday','tuesday','wednesday','thursday','friday','saturday',\
                                                                      'sunday']
         for day in days:
             df[day] = onehot_encoded[:,days.index(day)].astype(np.int16)

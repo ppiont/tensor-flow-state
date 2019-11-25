@@ -39,55 +39,8 @@ df = pd.read_pickle(fname)
 
 df.drop(['timestamp', 'date', 'lon', 'lat', 'flow', 'sensor_id'], axis = 1, inplace = True)
 
-# sns.distplot(df['speed'])
-# sns.despine()
-# plt.tight_layout()
-# plt.savefig(plotdir + 'distplot.png', dpi = 600)
-
-df['lag_1'] = df['speed'].shift(1).fillna(method = 'bfill').copy()
-df['lag_5'] = df['speed'].shift(5).fillna(method = 'bfill').copy()
-df['lag_10'] = df['speed'].shift(10).fillna(method = 'bfill').copy()
-df['lag_15'] = df['speed'].shift(15).fillna(method = 'bfill').copy()
-df['lag_30'] = df['speed'].shift(30).fillna(method = 'bfill').copy()
-df['lag_45'] = df['speed'].shift(45).fillna(method = 'bfill').copy()
-df['lag_60'] = df['speed'].shift(60).fillna(method = 'bfill').copy()
-
-print(df.head(60))
-
-# naive r2 for 5 and 10 mins
-r2_1 = r2_score(df.speed, df.lag_1)
-r2_5 = r2_score(df.speed, df.lag_5)
-r2_10 = r2_score(df.speed, df.lag_10)
-r2_15 = r2_score(df.speed, df.lag_15)
-r2_30 = r2_score(df.speed, df.lag_30)
-r2_45 = r2_score(df.speed, df.lag_45)
-r2_60 = r2_score(df.speed, df.lag_60)
-mae_1 = mean_absolute_error(df.speed, df.lag_1)
-mae_5 = mean_absolute_error(df.speed, df.lag_5)
-mae_10 = mean_absolute_error(df.speed, df.lag_10)
-mae_15 = mean_absolute_error(df.speed, df.lag_15)
-mae_30 = mean_absolute_error(df.speed, df.lag_30)
-mae_45 = mean_absolute_error(df.speed, df.lag_45)
-mae_60 = mean_absolute_error(df.speed, df.lag_60)
-
-naive_baseline = (f'NAIVE BASELINE\n\
-     1m lag || MAE: {mae_1:.2f} kph || R2: {r2_1:.2f}\n\
-     5m lag || MAE: {mae_5:.2f} kph || R2: {r2_5:.2f}\n\
-    10m lag || MAE: {mae_10:.2f} kph || R2: {r2_10:.2f}\n\
-    15m lag || MAE: {mae_15:.2f} kph || R2: {r2_15:.2f}\n\
-    30m lag || MAE: {mae_30:.2f} kph || R2: {r2_30:.2f}\n\
-    45m lag || MAE: {mae_45:.2f} kph || R2: {r2_45:.2f}\n\
-    60m lag || MAE: {mae_60:.2f} kph || R2: {r2_60:.2f}')
-
-print(naive_baseline)
-
-
-
 ## normalize
 ## more relevant features?
-
-
-
 
 arr = np.array(df['speed'])
 
