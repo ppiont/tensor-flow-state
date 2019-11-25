@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Nov 25 09:55:35 2019
+
+@author: peterpiontek
+"""
+
 # Import libraries
 import os
 import pandas as pd
@@ -8,16 +15,10 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# ML
-import tensorflow as tf
-from tensorflow import keras
 from sklearn.metrics import r2_score, mean_absolute_error
 
 # Set working dir
-os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
-
-# Import homebrew
-# from modules.repair_time_series import repair_time_series
+os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")s
 
 # Define directories
 datadir = "./data/"
@@ -30,7 +31,7 @@ pd.set_option('display.width', 200) # Accepted line width before wrapping
 pd.set_option('display.max_colwidth', -1)
 # Display decimals instead of scientific with pandas
 pd.options.display.float_format = '{:.2f}'.format
-
+# Increase figure size and set modern aspect ratio
 plt.rcParams['figure.figsize'] = (16, 9)
 
 # Load data
@@ -80,44 +81,4 @@ naive_baseline = (f'NAIVE BASELINE\n\
     60m lag || MAE: {mae_60:.2f} kph || R2: {r2_60:.2f}')
 
 print(naive_baseline)
-
-
-
-## normalize
-## more relevant features?
-
-
-
-
-arr = np.array(df['speed'])
-
-def generator(data, lookback, delay, min_index, max_index, 
-              shuffle = False, batch_size = 128, step = 5):
-    # if max index not given, subtract prediction horizon - 1 (len to index) from last data point
-    if max_index is None:
-        max_index = len(data) - delay - 1
-    # set i to first idx with valid lookback length behind it
-    i = min_index + lookback
-    while True:
-        if shuffle:
-            rows = np.random.randint(
-                min_index + lookback, max_index, size = batch_size)
-        else:
-            if i + batch_size >= max_index:
-                i = min_index + lookback
-            rows = np.arange(i, min(i + batch_size, max_index))
-            i += len(rows)
-            
-    samples = np.zeros((len(rows),
-                        lookback // step,
-                        data.shape[-1]))
-    targets = np.zeros((len(rows),))
-    for j, row in enumerate(rows):
-        indices = range(rows[j] - lookback, rows[j] - step)
-        samples[j] = data[indices]
-        targets[j] = data[rows[j] + delay][1]
-    yield samples, targets
-    
-
-
 
