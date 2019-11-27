@@ -35,6 +35,9 @@ pd.set_option('display.max_colwidth', -1)
 pd.options.display.float_format = '{:.2f}'.format
 
 plt.rcParams['figure.figsize'] = (16, 9)
+plt.rcParams['figure.dpi'] = 300
+plt.rcParams['savefig.dpi'] = 600
+plt.rcParams['image.cmap'] = 'viridis'
 
 # # Load pickle
 # pname =  os.path.join(datadir, 'RWS01_MONIBAS_0021hrl0414ra_jun_oct_repaired.pkl')
@@ -48,6 +51,7 @@ df.set_index('timestamp', inplace = True, drop = True)
 
 # Add speed limit information
 df['speed_limit'] = np.where((df.index.hour < 19) & (df.index.hour >= 6), 100, 120)
+
 mean100 , mean120 = df.groupby(['speed_limit']).mean().unstack().values
 sd100 , sd120 = df.groupby(['speed_limit']).std().unstack().values
 
@@ -61,8 +65,9 @@ df.speed_normalized.hist(bins = df.speed.max() + 1)
 
 arr = np.array(df['speed_normalized'])
 
-arr2 = np.array(np.linspace(1, 100, 100))
+arr2 = np.linspace(1, 100, 100)
 print(arr2)
+
 
 def generator(data, lookback, delay, min_index = 0, max_index = None, 
               shuffle = False, batch_size = 128, step = 1):
@@ -71,7 +76,7 @@ def generator(data, lookback, delay, min_index = 0, max_index = None,
         max_index = len(data) - delay - 1
     # set i to first idx with valid lookback length behind it
     i = min_index + lookback
-    while True:
+    while 1:
         if shuffle:
             rows = np.random.randint(
                 min_index + lookback, max_index, size = batch_size)
@@ -80,7 +85,7 @@ def generator(data, lookback, delay, min_index = 0, max_index = None,
                 i = min_index + lookback
             rows = np.arange(i, min(i + batch_size, max_index))
             i += len(rows)
-            
+
         samples = np.zeros((len(rows),
                             lookback // step,
                             np.shape(data)[-1]))
@@ -90,6 +95,7 @@ def generator(data, lookback, delay, min_index = 0, max_index = None,
             samples[j] = data[indices]
             targets[j] = data[rows[j] + delay][1]
         yield samples, targets
+
 
 data = np.array(df['speed_normalized'])
 lookback = 10
@@ -101,6 +107,7 @@ max_index_val = len(data) - 1
 step = 1
 batch_size = 128
 
+
 train_gen = generator(data,
                       lookback = lookback,
                       delay = delay,
@@ -109,6 +116,14 @@ train_gen = generator(data,
                       shuffle = False,
                       step = step, 
                       batch_size = batch_size)
+
+
+control = 0
+for samples, targets in train_gen:
+    
+    if control < 100:
+        print(samples, targets)
+        control += 1
 
 
 val_gen = generator(data,
