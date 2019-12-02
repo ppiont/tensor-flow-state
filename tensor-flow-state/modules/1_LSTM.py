@@ -52,21 +52,19 @@ df.set_index('timestamp', inplace = True, drop = True)
 # Add speed limit information
 df['speed_limit'] = np.where((df.index.hour < 19) & (df.index.hour >= 6), 100, 120)
 
-mean100 , mean120 = df.groupby(['speed_limit']).mean().unstack().values
-sd100 , sd120 = df.groupby(['speed_limit']).std().unstack().values
 
-df['speed_normalized'] = np.where(df.speed_limit == 100, (df.speed - mean100) / sd100, (df.speed - mean120) / sd120)
+mean100, mean120 = df[: -(31 * 24 * 60)].groupby(['speed_limit']).mean().unstack().values
+sd100, sd120 = df[: -(31 * 24 * 60)].groupby(['speed_limit']).std().unstack().values
 
-df.speed_normalized.hist(bins = df.speed.max() + 1)
+
+#### NEEDS FIX NEEDS FIX NEEDS FIX NEEDS FIX NEEDS FIX NEEDS FIX NEEDS FIX ####
+df['speed_normalized'] = np.where(df.speed_limit == 100, (df.speed - mean100) / sd100, (df.speed - mean120) / sd120) # here i should only use the mean/std from the training data!!!!!!
+###############################################################################
+df.iloc[: -(31 * 24 * 60), df.columns.get_loc('speed_normalized')].hist(bins = df.speed.max() + 1)
 
 # example
 # new month (november) is test
 # jun-oct is train/val
-
-arr = np.array(df['speed_normalized'])
-
-arr2 = np.linspace(1, 100, 100)
-print(arr2)
 
 
 def generator(data, lookback, delay, min_index = 0, max_index = None, 
@@ -133,6 +131,11 @@ val_gen = generator(data,
                     max_index = max_index_val,
                     step = step,
                     batch_size = batch_size)
+
+
+
+
+
 
 # ### SET UP MODEL ###
 # model = Sequential([

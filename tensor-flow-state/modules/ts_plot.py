@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def correlation_plot(y, title, lags=None, figsize=(12, 8)):
+def correlation_plot(y, title, lags=None, figsize=(16, 9)):
     fig = plt.figure(figsize=figsize)
     layout = (2, 2)
     ts_ax   = plt.subplot2grid(layout, (0, 0))
