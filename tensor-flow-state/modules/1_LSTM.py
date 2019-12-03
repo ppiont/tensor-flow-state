@@ -56,11 +56,11 @@ df['speed_limit'] = np.where((df.index.hour < 19) & (df.index.hour >= 6), 100, 1
 mean100, mean120 = df[: -(31 * 24 * 60)].groupby(['speed_limit']).mean().unstack().values
 sd100, sd120 = df[: -(31 * 24 * 60)].groupby(['speed_limit']).std().unstack().values
 
-
-#### NEEDS FIX NEEDS FIX NEEDS FIX NEEDS FIX NEEDS FIX NEEDS FIX NEEDS FIX ####
-df['speed_normalized'] = np.where(df.speed_limit == 100, (df.speed - mean100) / sd100, (df.speed - mean120) / sd120) # here i should only use the mean/std from the training data!!!!!!
+df['speed_normalized'] = np.where(df.speed_limit == 100, (df.speed - mean100) / sd100, (df.speed - mean120) / sd120)
 ###############################################################################
 df.iloc[: -(31 * 24 * 60), df.columns.get_loc('speed_normalized')].hist(bins = df.speed.max() + 1)
+
+
 
 # example
 # new month (november) is test
@@ -91,38 +91,38 @@ def generator(data, lookback, delay, min_index = 0, max_index = None,
         for j, row in enumerate(rows):
             indices = range(rows[j] - lookback, rows[j], step)
             samples[j] = data[indices]
-            targets[j] = data[rows[j] + delay][1]
+            targets[j] = data[rows[j] + delay][0] # Change col index ([0]) if reshaping 
         yield samples, targets
 
 
-data = np.array(df['speed_normalized'])
-lookback = 10
-delay = 10
-min_index = 0
-max_index = len(data) - 31 * 24 * 60 - 1
-min_index_val = len(data) - 31 * 24 * 60
-max_index_val = len(data) - 1
+
+data = np.array(df[['speed_normalized']].resample('10T').mean())
+
+lookback = 6
+delay = 6
+min_index_train = 0
+max_index_train = int(len(data) - (31 * 24 * 60) / 10 - 1)
+min_index_val = max_index_train + 1
+max_index_val = int(min_index_val + (17 * 24 * 60) / 10)
+min_index_test = max_index_val + 1
+max_index_test = len(data) - 1
 step = 1
 batch_size = 128
-
 
 train_gen = generator(data,
                       lookback = lookback,
                       delay = delay,
-                      min_index = min_index,
-                      max_index = max_index,
-                      shuffle = False,
+                      min_index = min_index_train,
+                      max_index = max_index_train,
                       step = step, 
                       batch_size = batch_size)
 
-
-control = 0
-for samples, targets in train_gen:
-    
-    if control < 100:
-        print(samples, targets)
-        control += 1
-
+# control = 0
+# while control < 5:
+#     for samples, targets in train_gen:
+#             print(samples, targets)
+#             print(samples.shape, targets.shape)
+#             control += 1
 
 val_gen = generator(data,
                     lookback = lookback,
@@ -131,6 +131,148 @@ val_gen = generator(data,
                     max_index = max_index_val,
                     step = step,
                     batch_size = batch_size)
+
+test_gen = generator(data,
+                     lookback = lookback,
+                     delay = delay,
+                     min_index = min_index_test,
+                     max_index = max_index_test,
+                     step = step,
+                     batch_size = batch_size)
+
+# This is how many steps to draw from `val_gen`
+# in order to see the whole validation set:
+val_steps = (max_index_val - min_index_val - lookback) // batch_size
+
+# This is how many steps to draw from `test_gen`
+# in order to see the whole test set:
+test_steps = (max_index_test - min_index_test - lookback) // batch_size
+
+
+# Evaluate vs 1 step previous (naive baseline)
+def evaluate_naive_method():
+    batch_maes = []
+    for step in range(val_steps):
+        samples, targets = next(val_gen)
+        preds = samples[:, -1, 0] # Changed index position [2] from 1 to 0, since its shape was 1
+        mae = np.mean(np.abs(preds - targets))
+        batch_maes.append(mae)
+    print(np.mean(batch_maes))
+    
+evaluate_naive_method()
+
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras import layers
+from tensorflow.keras.optimizers import RMSprop
+
+# MLP
+model = Sequential()
+model.add(layers.Flatten(input_shape = (lookback // step, data.shape[-1])))
+model.add(layers.Dense(32, activation = 'relu'))
+model.add(layers.Dense(1))
+
+model.compile(optimizer = RMSprop(), loss='mae')
+history = model.fit_generator(train_gen,
+                              steps_per_epoch = 500,
+                              epochs = 20,
+                              validation_data = val_gen,
+                              validation_steps = val_steps)
+
+
+import matplotlib.pyplot as plt
+
+# Plot MLP
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs = range(len(loss))
+
+plt.figure()
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+plt.show()
+
+
+# GRU
+model = Sequential()
+model.add(layers.GRU(32, input_shape = (None, data.shape[-1])))
+model.add(layers.Dense(1))
+
+model.compile(optimizer = RMSprop(), loss = 'mae')
+history = model.fit_generator(train_gen,
+                              steps_per_epoch = 500,
+                              epochs = 20,
+                              validation_data = val_gen,
+                              validation_steps = val_steps)
+
+# Plot GRU
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs = range(len(loss))
+plt.figure()
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+plt.show()
+
+
+# GRU Dropout
+model = Sequential()
+model.add(layers.GRU(32,
+                     dropout = 0.2,
+                     recurrent_dropout = 0.2,
+                     input_shape = (None, data.shape[-1])))
+model.add(layers.Dense(1))
+
+model.compile(optimizer = RMSprop(), loss = 'mae')
+history = model.fit_generator(train_gen,
+                              steps_per_epoch = 500,
+                              epochs = 40,
+                              validation_data = val_gen,
+                              validation_steps = val_steps)
+
+# Plot GRU dropout
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs = range(len(loss))
+plt.figure()
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+plt.show()
+
+
+# LSTM
+model = Sequential()
+model.add(layers.LSTM(32, input_shape = (None, data.shape[-1])))
+model.add(layers.Dense(1))
+
+model.compile(optimizer = RMSprop(), loss = 'mae')
+history = model.fit_generator(train_gen,
+                              steps_per_epoch = 500,
+                              epochs = 20,
+                              validation_data = val_gen,
+                              validation_steps = val_steps)
+
+# Plot LSTM
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs = range(len(loss))
+plt.figure()
+plt.plot(epochs, loss, 'bo', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.legend()
+plt.show()
+
+
+
+
+
 
 
 
