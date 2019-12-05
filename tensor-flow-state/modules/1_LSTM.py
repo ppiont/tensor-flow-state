@@ -2,71 +2,71 @@
 import os
 import pandas as pd
 import numpy as np
-
 # Display and Plotting
-import matplotlib as mpl
+
+#import matplotlib as mpl
 import matplotlib.pyplot as plt
-import seaborn as sns
+#import seaborn as sns
 
 # ML
-import tensorflow as tf
-from tensorflow import keras
-from sklearn.metrics import r2_score, mean_absolute_error
+#import tensorflow as tf
+#from tensorflow import keras
+#from sklearn.metrics import r2_score, mean_absolute_error
+from tensorflow.keras.models import Sequential
+from tensorflow.keras import layers
+from tensorflow.keras.optimizers import RMSprop
+
+# Ignore warnings
+# import warnings
+# warnings.filterwarnings("ignore")
 
 # Set working dir
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
-# Import homebrew
-# from modules.repair_time_series import repair_time_series
-
-# import modules.Settings as settings
-# settings.dir_settings()
+# Set pandas and matplotlib settings
+exec(open('modules/Settings.py').read())
 
 # Define directories
 datadir = "./data/"
 plotdir = './plots/'
-
-# Don't limit, truncate or wrap columns displayed by pandas
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.width', 200) # Accepted line width before wrapping
-pd.set_option('display.max_colwidth', -1)
-# Display decimals instead of scientific with pandas
-pd.options.display.float_format = '{:.2f}'.format
-
-plt.rcParams['figure.figsize'] = (16, 9)
-plt.rcParams['figure.dpi'] = 300
-plt.rcParams['savefig.dpi'] = 600
-plt.rcParams['image.cmap'] = 'viridis'
-
-# # Load pickle
-# pname =  os.path.join(datadir, 'RWS01_MONIBAS_0021hrl0414ra_jun_oct_repaired.pkl')
-# df = pd.read_pickle(pname)
-# # df = df[['speed]]
 
 # Load feather
 fname =  os.path.join(datadir, 'RWS01_MONIBAS_0021hrl0414ra_jun_oct_repaired.feather')
 df = pd.read_feather(fname) 
 df.set_index('timestamp', inplace = True, drop = True)
 
+df_10m = df.resample('10T').mean()
+
 # Add speed limit information
 df['speed_limit'] = np.where((df.index.hour < 19) & (df.index.hour >= 6), 100, 120)
+df_10m['speed_limit'] = np.where((df_10m.index.hour < 19) & (df_10m.index.hour >= 6), 100, 120)
+
+# Find mean and sd for training batch
+# mean100, mean120 = df[: -(31 * 24 * 60)].groupby(['speed_limit']).mean().unstack().values
+# sd100, sd120 = df[: -(31 * 24 * 60)].groupby(['speed_limit']).std().unstack().values
+mean100, mean120 = df_10m[: -(31 * 24 * 6)].groupby(['speed_limit']).mean().unstack().values # 10 min agg
+sd100, sd120 = df_10m[: -(31 * 24 * 6)].groupby(['speed_limit']).std().unstack().values # 10 min agg
 
 
-mean100, mean120 = df[: -(31 * 24 * 60)].groupby(['speed_limit']).mean().unstack().values
-sd100, sd120 = df[: -(31 * 24 * 60)].groupby(['speed_limit']).std().unstack().values
-
+# Normalize speed on training batch mean/sd
 df['speed_normalized'] = np.where(df.speed_limit == 100, (df.speed - mean100) / sd100, (df.speed - mean120) / sd120)
-###############################################################################
+# df['mean'] = np.where(df.speed_limit == 100, mean100, mean120)
+# df['sd'] = np.where(df.speed_limit == 100, sd100, sd120)
+# Plot Normalized distribution of training batch
 df.iloc[: -(31 * 24 * 60), df.columns.get_loc('speed_normalized')].hist(bins = df.speed.max() + 1)
 
+# Normalize speed on training batch mean/sd (10m)
+df_10m['speed_normalized'] = np.where(df_10m.speed_limit == 100, (df_10m.speed - mean100) / sd100, (df_10m.speed - mean120) / sd120)
+# df['mean'] = np.where(df.speed_limit == 100, mean100, mean120)
+# df['sd'] = np.where(df.speed_limit == 100, sd100, sd120)
+# Plot Normalized distribution of training batch
+df_10m.iloc[: -(31 * 24 * 6), df_10m.columns.get_loc('speed_normalized')].hist(bins = int(df_10m.speed.max() + 1))
 
 
-# example
-# new month (november) is test
-# jun-oct is train/val
 
 
+
+# Generates sequential 3D batches to feed to the model fitter
 def generator(data, lookback, delay, min_index = 0, max_index = None, 
               shuffle = False, batch_size = 128, step = 1):
     # if max index not given, subtract prediction horizon - 1 (len to index) from last data point
@@ -95,17 +95,17 @@ def generator(data, lookback, delay, min_index = 0, max_index = None,
         yield samples, targets
 
 
+# data = np.array(df[['speed_normalized']])
+data = np.array(df_10m[['speed_normalized']])
 
-data = np.array(df[['speed_normalized']].resample('10T').mean())
-
-lookback = 6
-delay = 6
+lookback = 6*24*7
+delay = 1
 min_index_train = 0
-max_index_train = int(len(data) - (31 * 24 * 60) / 10 - 1)
+max_index_train = int(len(data) - (31 * 24 * 60) / 10)
 min_index_val = max_index_train + 1
-max_index_val = int(min_index_val + (17 * 24 * 60) / 10)
+max_index_val = int(min_index_val + ((17 * 24 * 60) / 10))
 min_index_test = max_index_val + 1
-max_index_test = len(data) - 1
+max_index_test = None
 step = 1
 batch_size = 128
 
@@ -146,7 +146,7 @@ val_steps = (max_index_val - min_index_val - lookback) // batch_size
 
 # This is how many steps to draw from `test_gen`
 # in order to see the whole test set:
-test_steps = (max_index_test - min_index_test - lookback) // batch_size
+test_steps = (len(data) - min_index_test - lookback) // batch_size
 
 
 # Evaluate vs 1 step previous (naive baseline)
@@ -162,9 +162,8 @@ def evaluate_naive_method():
 evaluate_naive_method()
 
 
-from tensorflow.keras.models import Sequential
-from tensorflow.keras import layers
-from tensorflow.keras.optimizers import RMSprop
+
+
 
 # MLP
 model = Sequential()
@@ -179,22 +178,6 @@ history = model.fit_generator(train_gen,
                               validation_data = val_gen,
                               validation_steps = val_steps)
 
-
-import matplotlib.pyplot as plt
-
-# Plot MLP
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-epochs = range(len(loss))
-
-plt.figure()
-plt.plot(epochs, loss, 'bo', label='Training loss')
-plt.plot(epochs, val_loss, 'b', label='Validation loss')
-plt.title('Training and validation loss')
-plt.legend()
-plt.show()
-
-
 # GRU
 model = Sequential()
 model.add(layers.GRU(32, input_shape = (None, data.shape[-1])))
@@ -206,18 +189,6 @@ history = model.fit_generator(train_gen,
                               epochs = 20,
                               validation_data = val_gen,
                               validation_steps = val_steps)
-
-# Plot GRU
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-epochs = range(len(loss))
-plt.figure()
-plt.plot(epochs, loss, 'bo', label='Training loss')
-plt.plot(epochs, val_loss, 'b', label='Validation loss')
-plt.title('Training and validation loss')
-plt.legend()
-plt.show()
-
 
 # GRU Dropout
 model = Sequential()
@@ -234,31 +205,40 @@ history = model.fit_generator(train_gen,
                               validation_data = val_gen,
                               validation_steps = val_steps)
 
-# Plot GRU dropout
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-epochs = range(len(loss))
-plt.figure()
-plt.plot(epochs, loss, 'bo', label='Training loss')
-plt.plot(epochs, val_loss, 'b', label='Validation loss')
-plt.title('Training and validation loss')
-plt.legend()
-plt.show()
-
-
-# LSTM
+# Train LSTM
 model = Sequential()
 model.add(layers.LSTM(32, input_shape = (None, data.shape[-1])))
 model.add(layers.Dense(1))
 
 model.compile(optimizer = RMSprop(), loss = 'mae')
-history = model.fit_generator(train_gen,
-                              steps_per_epoch = 500,
+history = model.fit(train_gen,
+                              steps_per_epoch = ((max_index_train + 1) // batch_size),
                               epochs = 20,
                               validation_data = val_gen,
                               validation_steps = val_steps)
 
-# Plot LSTM
+# Train Stacked LSTM with Dropout
+model = Sequential()
+model.add(layers.LSTM(32, 
+                      dropout = 0.1,
+                      recurrent_dropout = 0.5,
+                      return_sequences = True,
+                      input_shape = (None, data.shape[-1])))
+model.add(layers.LSTM(64,
+                      dropout = 0.1,
+                      recurrent_dropout = 0.5,
+                      input_shape = (None, data.shape[-1])))
+model.add(layers.Dense(1))
+
+model.compile(optimizer = RMSprop(), loss = 'mae')
+history = model.fit(train_gen,
+                              steps_per_epoch = ((max_index_train + 1) // batch_size),
+                              epochs = 30,
+                              validation_data = val_gen,
+                              validation_steps = val_steps)
+
+
+# PLOT
 loss = history.history['loss']
 val_loss = history.history['val_loss']
 epochs = range(len(loss))
@@ -271,13 +251,27 @@ plt.show()
 
 
 
+# Evaluate
+score = model.evaluate(test_gen, steps = 7)
+print(score)
+
+
+
+model.save('LSTM_Stacked_Dropout_1w_look_10m_res_fix.h5')
+
+
+
+preds = model.predict(test_gen, steps = 7)
+preds[0:10]
 
 
 
 
 
+predictions = pd.DataFrame(data[-896-110:-110], columns = ['actual'])
+predictions['prediction'] = preds
 
-
+predictions.plot()
 
 # ### SET UP MODEL ###
 # model = Sequential([

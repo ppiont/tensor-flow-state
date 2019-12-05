@@ -61,7 +61,15 @@ ndw.plot()
 ndw.crs
 knmi.crs
 
-test = ndw.to_crs({'init': 'epsg:28992'})
+
+
+
+
+
+
+
+
+test = knmi.to_crs({'init': 'epsg:4326'})
 test2 = knmi.to_crs({'init': 'epsg:28992'})
 test.plot()
 knmi = knmi.to_crs({'init': 'epsg:4326'})
