@@ -118,7 +118,7 @@ def test_generator(data, lookback, delay, min_index = 0, max_index = None,
 # data = np.array(df[['speed_normalized']])
 data = np.array(df_10m[['speed_normalized']])
 
-lookback = 7*24*6
+lookback = 3*6
 delay = 1
 min_index_train = 0
 max_index_train = len(data) - 31 * 24 * 6
@@ -169,17 +169,7 @@ def evaluate_naive_method():
 evaluate_naive_method()
 
 
-# Train LSTM
-model = Sequential()
-model.add(layers.LSTM(32, input_shape = (None, data.shape[-1])))
-model.add(layers.Dense(1))
-
-model.compile(optimizer = RMSprop(), loss = 'mae')
-history = model.fit(train_gen,
-                              steps_per_epoch = ((max_index_train + 1) // batch_size),
-                              epochs = 20,
-                              validation_data = val_gen,
-                              validation_steps = val_steps)
+tf.keras.backend.set_floatx('float32')
 
 # Train Stacked LSTM with Dropout
 model = Sequential()
@@ -189,20 +179,20 @@ model.add(layers.LSTM(32,
                       return_sequences = True,
                       input_shape = (None, data.shape[-1])))
 model.add(layers.LSTM(64,
-                      dropout = 0.1,
+                      dropout = 0.2,
                       recurrent_dropout = 0.5,
                       input_shape = (None, data.shape[-1])))
 model.add(layers.Dense(1))
 
-model.compile(optimizer = RMSprop(), loss = 'mae')
+model.compile(optimizer = RMSprop(learning_rate = 0.001), loss = 'mae')
 history = model.fit(train_gen,
                               steps_per_epoch = ((max_index_train + 1) // batch_size),
-                              epochs = 30,
+                              epochs = 50,
                               validation_data = val_gen,
                               validation_steps = val_steps)
 
 
-# PLOT
+# PLOT training
 loss = history.history['loss']
 val_loss = history.history['val_loss']
 epochs = range(len(loss))
@@ -216,10 +206,8 @@ plt.show()
 
 
 
-
-
-# Load model
-model = keras.models.load_model('./models/LSTM_Stacked_Dropout_1w_look_10m_res_fix.h5')
+# save model
+model.save('./models/insert_whatever.h5')
 
 
 model.summary()
@@ -241,7 +229,7 @@ predictions = predictions.reindex(date_index)
 predictions['predictions_normalized'] = predictions['prediction_normalized'].shift(1)
 predictions['predicted'] = np.where(predictions.speed_limit == 100, (predictions.predictions_normalized * sd100_10m + mean100_10m), (predictions.predictions_normalized * sd120_10m + mean120_10m))
 predictions.fillna(method = 'bfill', inplace = True)
-predictions[-144:][['speed_limit', 'actual', 'predicted']].plot()
+predictions[:288][['speed_limit', 'actual', 'predicted']].plot()
 
 
 

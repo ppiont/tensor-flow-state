@@ -39,20 +39,35 @@ df.set_index('timestamp', inplace = True, drop = True)
 df_10m = df.resample('10T').mean()
 
 # Add speed limit information
+df['speed_limit'] = np.where((df.index.hour < 19) & (df.index.hour >= 6), 100, 120)
 df_10m['speed_limit'] = np.where((df_10m.index.hour < 19) & (df_10m.index.hour >= 6), 100, 120)
 
 # Find mean and sd for training batch
-mean100_10m, mean120_10m = df_10m[: -(31 * 24 * 6)].groupby(['speed_limit']).mean().unstack().values
-sd100_10m, sd120_10m = df_10m[: -(31 * 24 * 6)].groupby(['speed_limit']).std().unstack().values
+mean100, mean120 = df[: -(31 * 24 * 60)].groupby(['speed_limit']).mean().unstack().values
+sd100, sd120 = df[: -(31 * 24 * 60)].groupby(['speed_limit']).std().unstack().values
+mean100_10m, mean120_10m = df_10m[: -(31 * 24 * 6)].groupby(['speed_limit']).mean().unstack().values # 10 min agg
+sd100_10m, sd120_10m = df_10m[: -(31 * 24 * 6)].groupby(['speed_limit']).std().unstack().values # 10 min agg
+
+
+# Normalize speed on training batch mean/sd
+df['speed_normalized'] = np.where(df.speed_limit == 100, (df.speed - mean100) / sd100, (df.speed - mean120) / sd120)
+# df['mean'] = np.where(df.speed_limit == 100, mean100, mean120)
+# df['sd'] = np.where(df.speed_limit == 100, sd100, sd120)
+# Plot Normalized distribution of training batch
+df.iloc[: -(31 * 24 * 60), df.columns.get_loc('speed_normalized')].hist(bins = df.speed.max() + 1)
 
 # Normalize speed on training batch mean/sd (10m)
 df_10m['speed_normalized'] = np.where(df_10m.speed_limit == 100, (df_10m.speed - mean100_10m) / sd100_10m, (df_10m.speed - mean120_10m) / sd120_10m)
-
+# df['mean'] = np.where(df.speed_limit == 100, mean100, mean120)
+# df['sd'] = np.where(df.speed_limit == 100, sd100, sd120)
 # Plot Normalized distribution of training batch
 df_10m.iloc[: -(31 * 24 * 6), df_10m.columns.get_loc('speed_normalized')].hist(bins = int(df_10m.speed.max() + 1))
 
 
-# Generates sequential 3D batches to feed to the model processes
+
+
+
+# Generates sequential 3D batches to feed to the model fitter
 def generator(data, lookback, delay, min_index = 0, max_index = None, 
               shuffle = False, batch_size = 128, step = 1):
     # if max index not given, subtract prediction horizon - 1 (len to index) from last data point
@@ -61,17 +76,12 @@ def generator(data, lookback, delay, min_index = 0, max_index = None,
     # set i to first idx with valid lookback length behind it
     i = min_index + lookback
     while 1:
-        # Use shuffle for non-sequential data
         if shuffle:
             rows = np.random.randint(
                 min_index + lookback, max_index, size = batch_size)
-        # Else for sequential (time series)
         else:
-            # Check if adding batch exceeds index bounds
             if i + batch_size >= max_index:
-                # return i to beginning
                 i = min_index + lookback
-            # Set rows from i to 
             rows = np.arange(i, min(i + batch_size, max_index))
             i += len(rows)
 
@@ -85,35 +95,6 @@ def generator(data, lookback, delay, min_index = 0, max_index = None,
             targets[j] = data[rows[j] + delay][0] # Change col index ([0]) if reshaping 
         yield samples, targets
 
-def test_generator(data, lookback, delay, min_index = 0, max_index = None,
-                   shuffle = False, batch_size = 128, step = 1):
-    if max_index is None:
-        max_index = len(data) - delay - 1
-
-    ## Shift the starting index
-    nbatch = (max_index - min_index - lookback) // batch_size
-    shift = max_index - min_index - lookback - nbatch * batch_size
-    min_index_trunc = min_index + shift + lookback - 1
-
-    i = min_index_trunc
-    while 1:
-        if shuffle:
-            rows = np.random.randint(
-                min_index_trunc, max_index, size = batch_size)
-        else:
-            if i + batch_size >= max_index:
-                i = min_index_trunc
-            rows = np.arange(i, min(i + batch_size, max_index))
-            i += len(rows)
-        samples = np.zeros((len(rows),
-                           lookback // step,
-                           data.shape[-1]))
-        targets = np.zeros((len(rows),))
-        for j, row in enumerate(rows):
-            indices = range(rows[j] - lookback, rows[j], step)
-            samples[j] = data[indices]
-            targets[j] = data[rows[j] + delay][0]
-        yield samples, targets
 
 # data = np.array(df[['speed_normalized']])
 data = np.array(df_10m[['speed_normalized']])
@@ -121,10 +102,10 @@ data = np.array(df_10m[['speed_normalized']])
 lookback = 7*24*6
 delay = 1
 min_index_train = 0
-max_index_train = len(data) - 31 * 24 * 6
-min_index_val = max_index_train
-max_index_val = min_index_val + 17 * 24 * 6
-min_index_test = max_index_val
+max_index_train = int(len(data) - (31 * 24 * 60) / 10)
+min_index_val = max_index_train + 1
+max_index_val = int(min_index_val + ((17 * 24 * 60) / 10))
+min_index_test = max_index_val + 1
 max_index_test = None
 step = 1
 batch_size = 128
@@ -137,6 +118,13 @@ train_gen = generator(data,
                       step = step, 
                       batch_size = batch_size)
 
+# control = 0
+# while control < 5:
+#     for samples, targets in train_gen:
+#             print(samples, targets)
+#             print(samples.shape, targets.shape)
+#             control += 1
+
 val_gen = generator(data,
                     lookback = lookback,
                     delay = delay,
@@ -145,7 +133,7 @@ val_gen = generator(data,
                     step = step,
                     batch_size = batch_size)
 
-test_gen = test_generator(data,
+test_gen = generator(data,
                      lookback = lookback,
                      delay = delay,
                      min_index = min_index_test,
@@ -153,8 +141,14 @@ test_gen = test_generator(data,
                      step = step,
                      batch_size = batch_size)
 
+# This is how many steps to draw from `val_gen`
+# in order to see the whole validation set:
 val_steps = (max_index_val - min_index_val - lookback) // batch_size
+
+# This is how many steps to draw from `test_gen`
+# in order to see the whole test set:
 test_steps = (len(data) - min_index_test - lookback) // batch_size
+
 
 # Evaluate vs 1 step previous (naive baseline)
 def evaluate_naive_method():
@@ -167,6 +161,7 @@ def evaluate_naive_method():
     print(np.mean(batch_maes))
     
 evaluate_naive_method()
+
 
 
 # Train LSTM
@@ -219,12 +214,12 @@ plt.show()
 
 
 # Load model
-model = keras.models.load_model('./models/LSTM_Stacked_Dropout_1w_look_10m_res_fix.h5')
+model = keras.models.load_model('./data/models/LSTM_Stacked_Dropout_1w_look_10m_res_fix.h5')
 
 
 model.summary()
 # Evaluate
-score = model.evaluate(test_gen, steps = test_steps)
+score = model.evaluate(test_gen)
 print(score)
 
 
@@ -233,15 +228,22 @@ print(score)
 
 
 
-preds = model.predict(test_gen, steps = test_steps)
-predictions = df_10m[-len(preds):].rename(columns = {'speed': 'actual'})
-predictions['prediction_normalized'] = preds
-date_index = pd.date_range('2019-10-25 18:40:00', periods = 897, freq='10T')
-predictions = predictions.reindex(date_index)
-predictions['predictions_normalized'] = predictions['prediction_normalized'].shift(1)
-predictions['predicted'] = np.where(predictions.speed_limit == 100, (predictions.predictions_normalized * sd100_10m + mean100_10m), (predictions.predictions_normalized * sd120_10m + mean120_10m))
-predictions.fillna(method = 'bfill', inplace = True)
-predictions[-144:][['speed_limit', 'actual', 'predicted']].plot()
+preds = model.predict(test_gen)
+preds[0:10]
+
+
+
+
+
+predictions = pd.DataFrame(data[-896-110:-110], columns = ['actual'])
+predictions['prediction'] = preds
+
+predictions.plot()
+
+
+
+
+
 
 
 
