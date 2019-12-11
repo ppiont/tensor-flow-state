@@ -9,12 +9,15 @@ import matplotlib.pyplot as plt
 #import seaborn as sns
 
 # ML
+from comet_ml import Experiment
 import tensorflow as tf
+import tensorboard
 from tensorflow import keras
 #from sklearn.metrics import r2_score, mean_absolute_error
 from tensorflow.keras.models import Sequential
 from tensorflow.keras import layers
 from tensorflow.keras.optimizers import RMSprop
+
 
 # Ignore warnings
 # import warnings
@@ -169,7 +172,12 @@ def evaluate_naive_method():
 evaluate_naive_method()
 
 
-tf.keras.backend.set_floatx('float32')
+
+
+experiment = Experiment(api_key="x35bnicTdFnGpiwNay7O0fywc",
+                        project_name="general", workspace="ppiont")
+
+# tf.keras.backend.set_floatx('float32')
 
 # Train Stacked LSTM with Dropout
 model = Sequential()
@@ -177,17 +185,21 @@ model.add(layers.LSTM(32,
                       dropout = 0.1,
                       recurrent_dropout = 0.5,
                       return_sequences = True,
-                      input_shape = (None, data.shape[-1])))
+                      batch_input_shape = (128, 3*6, 1),
+                      # input_shape = (None, data.shape[-1]),
+                      stateful = True))
 model.add(layers.LSTM(64,
-                      dropout = 0.2,
+                      dropout = 0.1,
                       recurrent_dropout = 0.5,
-                      input_shape = (None, data.shape[-1])))
+                      batch_input_shape = (128, 3*6, 1),
+                      # input_shape = (None, data.shape[-1]),
+                      stateful = True))
 model.add(layers.Dense(1))
 
 model.compile(optimizer = RMSprop(learning_rate = 0.001), loss = 'mae')
 history = model.fit(train_gen,
                               steps_per_epoch = ((max_index_train + 1) // batch_size),
-                              epochs = 50,
+                              epochs = 20,
                               validation_data = val_gen,
                               validation_steps = val_steps)
 

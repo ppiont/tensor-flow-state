@@ -22,6 +22,8 @@ plotdir = './plots/'
 
 waze = pd.read_csv('data/A2_waze.csv')
 
+waze.info()
+
 waze.head()
 waze.columns
 waze.describe
