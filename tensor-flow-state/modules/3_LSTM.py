@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Dec 11 12:43:53 2019
+
+@author: peterpiontek
+"""
+
 # Import libraries
 import os
 import pandas as pd
@@ -14,53 +21,19 @@ from tensorflow.keras.optimizers import RMSprop
 # Set working dir
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
+# Import homebrew
+from modules.generator import generator
+
 # Define directories
 datadir = "./data/"
 
 # Load dataframe
-df = pd.read_feather(os.path.join(datadir, 'data.feather'))
+df = pd.read_feather(os.path.join(datadir, '5_months_10m_resolution_standardized_speed.feather'))
 # Set index
 df.set_index('timestamp', inplace = True, drop = True)
 
 # Isolate timeseries for use with the NN
 data = np.array(df[['speed_standardized']])
-
-df[['speed_standardized']].hist(bins = 100)
-
-# Generates sequential 3D batches to feed to the model
-def generator(data, lookback, delay, min_index = 0, max_index = None, 
-              shuffle = False, batch_size = 128, step = 1):
-    # if max index not given, subtract prediction horizon - 1 (len to index) from last data point
-    if max_index is None:
-        max_index = len(data) - delay - 1
-    # set i to first idx with valid lookback length behind it
-    i = min_index + lookback
-    while 1:
-        # Use shuffle for non-sequential data
-        if shuffle:
-            rows = np.random.randint(
-                min_index + lookback, max_index, size = batch_size)
-        # Else for sequential (time series)
-        else:
-            # Check if adding batch exceeds index bounds
-            if i + batch_size >= max_index:
-                # return i to beginning
-                i = min_index + lookback
-            # select next valid row range
-            rows = np.arange(i, min(i + batch_size, max_index))
-            # increment i
-            i += len(rows)
-        # initialize sample and target arrays
-        samples = np.zeros((len(rows),
-                            lookback // step,
-                            np.shape(data)[-1]))
-        targets = np.zeros((len(rows),))
-        # 
-        for j, row in enumerate(rows):
-            indices = range(rows[j] - lookback, rows[j], step)
-            samples[j] = data[indices]
-            targets[j] = data[rows[j] + delay][0] # Col index should point to target col -- currently ([0])
-        yield samples, targets
 
 # Generator 'settings'
 lookback = 24 * 6 # 24 hours
@@ -80,7 +53,8 @@ train_gen = generator(data,
                       min_index = min_index_train,
                       max_index = max_index_train,
                       step = step, 
-                      batch_size = batch_size)
+                      batch_size = batch_size,
+                      target_col = 0)
 
 val_gen = generator(data,
                     lookback = lookback,
@@ -88,7 +62,8 @@ val_gen = generator(data,
                     min_index = min_index_val,
                     max_index = max_index_val,
                     step = step,
-                    batch_size = batch_size)
+                    batch_size = batch_size,
+                    target_col = 0)
 
 test_gen = generator(data,
                      lookback = lookback,
@@ -96,7 +71,8 @@ test_gen = generator(data,
                      min_index = min_index_test,
                      max_index = None,
                      step = step,
-                     batch_size = batch_size)
+                     batch_size = batch_size,
+                     target_col = 0)
 
 val_steps = (max_index_val - min_index_val - lookback) // batch_size
 test_steps = (len(data) - min_index_test - lookback) // batch_size
@@ -114,6 +90,7 @@ def evaluate_naive_method():
 evaluate_naive_method()
 # 0.96
 
+
 # Train Stacked LSTM with Dropout
 model = Sequential()
 model.add(layers.LSTM(32, 
@@ -122,13 +99,27 @@ model.add(layers.LSTM(32,
                       batch_input_shape = (128, 24 * 6, 1),
                       # input_shape = (None, data.shape[-1]),
                       stateful = True,
-                      return_sequences = True))
-model.add(layers.LSTM(64,
+                      return_sequences = True,
+                      return_state = True))
+model.add(layers.LSTM(32,
                       dropout = 0.1,
                       recurrent_dropout = 0.5,
                       batch_input_shape = (128, 24 * 6, 32),
                       # input_shape = (None, data.shape[-1]),
                       stateful = True))
+model.add(layers.Dense(1))
+
+# trial
+model = Sequential()
+model.add(layers.LSTM(32, 
+                      dropout = 0.1,
+                      recurrent_dropout = 0.5,
+                      input_shape = (None, data.shape[-1]),
+                      return_sequences = True))
+model.add(layers.LSTM(64,
+                      dropout = 0.1,
+                      recurrent_dropout = 0.5,
+                      input_shape = (None, data.shape[-1])))
 model.add(layers.Dense(1))
 
 model.summary()
