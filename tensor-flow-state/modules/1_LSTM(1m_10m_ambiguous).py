@@ -64,7 +64,7 @@ df_10m['speed_normalized'] = np.where(df_10m.speed_limit == 100, (df_10m.speed -
 df_10m.iloc[: -(31 * 24 * 6), df_10m.columns.get_loc('speed_normalized')].hist(bins = int(df_10m.speed.max() + 1))
 
 
-
+df_10m['speed_normalized'].plot()
 
 
 # Generates sequential 3D batches to feed to the model fitter

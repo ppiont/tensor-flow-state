@@ -31,6 +31,8 @@ pd.options.display.float_format = '{:.2f}'.format
 
 ################################## Repair TS ##################################
 
+df = pd.read_csv(os.path.join(datadir, 'my_little_sensor.csv'), header = None)
+
 # Read df
 df = pd.read_pickle(datadir + 'RWS01_MONIBAS_0021hrl0414ra_jun_oct.pkl')[['timestamp', 'date', 'lon', 'lat', 'sensor_id', 'speed', 'flow']]
 

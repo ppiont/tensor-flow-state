@@ -11,6 +11,13 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras import layers
 from tensorflow.keras.optimizers import RMSprop
 
+# Set pandas options
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.width', 200) # Accepted line width before wrapping
+pd.set_option('display.max_colwidth', -1)
+pd.options.display.float_format = '{:.2f}'.format
+
 # Set working dir
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
 
@@ -23,9 +30,20 @@ df = pd.read_feather(os.path.join(datadir, 'data.feather'))
 df.set_index('timestamp', inplace = True, drop = True)
 
 # Isolate timeseries for use with the NN
-data = np.array(df[['speed_standardized']])
+# data = np.array(df[['speed_standardized']])
 
 df[['speed_standardized']].hist(bins = 100)
+
+df['shifted_speed_standardized'] = df['speed_standardized'] + 15
+
+df['shifted_speed_standardized_log'] = np.log(df['shifted_speed_standardized'])
+
+differenced_df = df.diff(1)[1:]
+
+differenced_df['shifted_speed_standardized_log'].plot()
+
+# Isolate timeseries for use with the NN
+data = np.array(df[['shifted_speed_standardized_log']])
 
 # Generates sequential 3D batches to feed to the model
 def generator(data, lookback, delay, min_index = 0, max_index = None, 
@@ -71,7 +89,7 @@ min_index_train = 0
 max_index_train = len(data) - 31 * 24 * 6 # last month is reserved for val/test
 min_index_val = max_index_train
 max_index_val = min_index_val + 17 * 24 * 6 # 17 days val
-min_index_test = max_index_val 
+min_index_test = max_index_val
 max_index_test = None # 14 days test
 
 train_gen = generator(data,
@@ -114,12 +132,21 @@ def evaluate_naive_method():
 evaluate_naive_method()
 # 0.96
 
+for i in range(10):
+    samples, targets = next(train_gen)
+    print(samples, targets)
+    print(samples.shape, targets.shape)
+
+
 # Train Stacked LSTM with Dropout
 model = Sequential()
+model.add(layers.Dense(32,
+                       activation='tanh',
+                       batch_input_shape = (128, 144, 1)))
 model.add(layers.LSTM(32, 
                       dropout = 0.1,
                       recurrent_dropout = 0.5,
-                      batch_input_shape = (128, 24 * 6, 1),
+                      batch_input_shape = (128, 24 * 6, 32),
                       # input_shape = (None, data.shape[-1]),
                       stateful = True,
                       return_sequences = True))
@@ -155,3 +182,13 @@ plt.show()
 # Evaluate
 score = model.evaluate(test_gen, steps = test_steps)
 print(score)
+
+
+preds = model.predict(test_gen)
+preds[0:10]
+
+
+predictions = pd.DataFrame(data[-896-110:-110], columns = ['actual'])
+predictions['prediction'] = preds
+
+predictions.plot()
