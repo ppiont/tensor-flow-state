@@ -1,11 +1,11 @@
 # don't track these folders
-**/data/
-**/plots/
-**/exercise/
+data/
+plots/
+exercise/
 
 # ignore postgres connection script (it includes database pw)
-**/pgConnect.py
-**/pg_connect.py
+pgConnect.py
+pg_connect.py
 
 # ignore clickhouse.py test file as it includes db pw
 *clickhouse*
@@ -13,7 +13,7 @@
 # ignore tensorflow test script. it's just a playground
 tensorflow-test.py
 
-**/__pycache__/
+__pycache__/
 
 # ignore spyder project files
-.spyproject
+.spyproject/
