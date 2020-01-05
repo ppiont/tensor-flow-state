@@ -17,4 +17,4 @@ sensor.loc[sensor.speed == -2] = np.nan´
 
 ## gonna set speed at 0 flow to speed limit
 sensor.loc[sensor.speed == -1] = #120 or 100
-# test
+# test2
