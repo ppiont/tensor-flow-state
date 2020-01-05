@@ -13,4 +13,9 @@
 # ignore tensorflow test script. it's just a playground
 tensorflow-test.py
 
+# ignore cache
 **/__pycache__/
+
+# ignore spyder project files
+**/.spyproject/
+
