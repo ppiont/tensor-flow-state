@@ -16,4 +16,4 @@ tensorflow-test.py
 **/__pycache__/
 
 # ignore spyder project files
-**/.spyproject/
+.spyproject
