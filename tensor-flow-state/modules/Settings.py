@@ -16,7 +16,7 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.width', 200) # Accepted line width before wrapping
 pd.set_option('display.max_colwidth', -1)
-pd.options.display.float_format = '{:.2f}'.format
+pd.options.display.float_format = '{:.3f}'.format
 print("pandas options set:\n\
       display.max_columns = 500\n\
       display.max_rows = 500\n\
