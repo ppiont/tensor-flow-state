@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Dec 11 12:43:53 2019
-
-@author: peterpiontek
-"""
-
 # Import libraries
 import os
 import pandas as pd
@@ -18,22 +11,78 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras import layers
 from tensorflow.keras.optimizers import RMSprop
 
+# Set pandas options
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.width', 200) # Accepted line width before wrapping
+pd.set_option('display.max_colwidth', -1)
+pd.options.display.float_format = '{:.2f}'.format
+
 # Set working dir
 os.chdir("C:/Users/peterpiontek/Google Drive/tensor-flow-state/tensor-flow-state")
-
-# Import homebrew
-from modules.generator import generator
 
 # Define directories
 datadir = "./data/"
 
 # Load dataframe
-df = pd.read_feather(os.path.join(datadir, '5_months_10m_resolution_standardized_speed.feather'))
+df = pd.read_csv(os.path.join(datadir, 'all_data_RWS01_MONIBAS_0021hrl0414ra.csv'))
+# CHECK REINDEX for missing time periods
+df[0:1]
+
+df['speed'].hist(bins = 100)
 # Set index
 df.set_index('timestamp', inplace = True, drop = True)
 
 # Isolate timeseries for use with the NN
-data = np.array(df[['speed_standardized']])
+# data = np.array(df[['speed_standardized']])
+
+df[['speed_standardized']].hist(bins = 100)
+
+df['shifted_speed_standardized'] = df['speed_standardized'] + 15
+
+df['shifted_speed_standardized_log'] = np.log(df['shifted_speed_standardized'])
+
+differenced_df = df.diff(1)[1:]
+
+differenced_df['shifted_speed_standardized_log'].plot()
+
+# Isolate timeseries for use with the NN
+data = np.array(df[['shifted_speed_standardized_log']])
+
+# Generates sequential 3D batches to feed to the model
+def generator(data, lookback, delay, min_index = 0, max_index = None, 
+              shuffle = False, batch_size = 128, step = 1):
+    # if max index not given, subtract prediction horizon - 1 (len to index) from last data point
+    if max_index is None:
+        max_index = len(data) - delay - 1
+    # set i to first idx with valid lookback length behind it
+    i = min_index + lookback
+    while 1:
+        # Use shuffle for non-sequential data
+        if shuffle:
+            rows = np.random.randint(
+                min_index + lookback, max_index, size = batch_size)
+        # Else for sequential (time series)
+        else:
+            # Check if adding batch exceeds index bounds
+            if i + batch_size >= max_index:
+                # return i to beginning
+                i = min_index + lookback
+            # select next valid row range
+            rows = np.arange(i, min(i + batch_size, max_index))
+            # increment i
+            i += len(rows)
+        # initialize sample and target arrays
+        samples = np.zeros((len(rows),
+                            lookback // step,
+                            np.shape(data)[-1]))
+        targets = np.zeros((len(rows),))
+        # 
+        for j, row in enumerate(rows):
+            indices = range(rows[j] - lookback, rows[j], step)
+            samples[j] = data[indices]
+            targets[j] = data[rows[j] + delay][0] # Col index should point to target col -- currently ([0])
+        yield samples, targets
 
 # Generator 'settings'
 lookback = 24 * 6 # 24 hours
@@ -44,7 +93,7 @@ min_index_train = 0
 max_index_train = len(data) - 31 * 24 * 6 # last month is reserved for val/test
 min_index_val = max_index_train
 max_index_val = min_index_val + 17 * 24 * 6 # 17 days val
-min_index_test = max_index_val 
+min_index_test = max_index_val
 max_index_test = None # 14 days test
 
 train_gen = generator(data,
@@ -53,8 +102,7 @@ train_gen = generator(data,
                       min_index = min_index_train,
                       max_index = max_index_train,
                       step = step, 
-                      batch_size = batch_size,
-                      target_col = 0)
+                      batch_size = batch_size)
 
 val_gen = generator(data,
                     lookback = lookback,
@@ -62,8 +110,7 @@ val_gen = generator(data,
                     min_index = min_index_val,
                     max_index = max_index_val,
                     step = step,
-                    batch_size = batch_size,
-                    target_col = 0)
+                    batch_size = batch_size)
 
 test_gen = generator(data,
                      lookback = lookback,
@@ -71,8 +118,7 @@ test_gen = generator(data,
                      min_index = min_index_test,
                      max_index = None,
                      step = step,
-                     batch_size = batch_size,
-                     target_col = 0)
+                     batch_size = batch_size)
 
 val_steps = (max_index_val - min_index_val - lookback) // batch_size
 test_steps = (len(data) - min_index_test - lookback) // batch_size
@@ -90,36 +136,30 @@ def evaluate_naive_method():
 evaluate_naive_method()
 # 0.96
 
+for i in range(10):
+    samples, targets = next(train_gen)
+    print(samples, targets)
+    print(samples.shape, targets.shape)
+
 
 # Train Stacked LSTM with Dropout
 model = Sequential()
+model.add(layers.Dense(32,
+                       activation='tanh',
+                       batch_input_shape = (128, 144, 1)))
 model.add(layers.LSTM(32, 
                       dropout = 0.1,
                       recurrent_dropout = 0.5,
-                      batch_input_shape = (128, 24 * 6, 1),
+                      batch_input_shape = (128, 24 * 6, 32),
                       # input_shape = (None, data.shape[-1]),
                       stateful = True,
-                      return_sequences = True,
-                      return_state = True))
-model.add(layers.LSTM(32,
+                      return_sequences = True))
+model.add(layers.LSTM(64,
                       dropout = 0.1,
                       recurrent_dropout = 0.5,
                       batch_input_shape = (128, 24 * 6, 32),
                       # input_shape = (None, data.shape[-1]),
                       stateful = True))
-model.add(layers.Dense(1))
-
-# trial
-model = Sequential()
-model.add(layers.LSTM(32, 
-                      dropout = 0.1,
-                      recurrent_dropout = 0.5,
-                      input_shape = (None, data.shape[-1]),
-                      return_sequences = True))
-model.add(layers.LSTM(64,
-                      dropout = 0.1,
-                      recurrent_dropout = 0.5,
-                      input_shape = (None, data.shape[-1])))
 model.add(layers.Dense(1))
 
 model.summary()
@@ -146,3 +186,13 @@ plt.show()
 # Evaluate
 score = model.evaluate(test_gen, steps = test_steps)
 print(score)
+
+
+preds = model.predict(test_gen)
+preds[0:10]
+
+
+predictions = pd.DataFrame(data[-896-110:-110], columns = ['actual'])
+predictions['prediction'] = preds
+
+predictions.plot()
