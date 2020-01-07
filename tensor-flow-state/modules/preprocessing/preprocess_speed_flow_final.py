@@ -13,7 +13,7 @@ sensor = pd.read_csv("data/RWS01_MONIBAS_0021hrl0414ra_speed_flow.csv")
 
 
 sensor.loc[sensor.flow < 0] = np.nan
-sensor.loc[sensor.speed == -2] = np.nan´
+sensor.loc[sensor.speed == -2] = np.nan
 
 ## gonna set speed at 0 flow to speed limit
 sensor.loc[sensor.speed == -1] = #120 or 100
