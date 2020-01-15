@@ -44,8 +44,8 @@ df['date'] = df.timestamp.dt.date
 
 # Interpolate null vals for the first week of data of speed and flow cols
 week = 7 * 24 * 60
-df.iloc[:week + 1, df.columns.get_loc('speed')] = df['speed'][:week + 1].interpolate(method = 'time')
-df.iloc[:week + 1, df.columns.get_loc('flow')] = df['flow'][:week + 1].interpolate(method = 'time')
+df.iloc[:week, df.columns.get_loc('speed')] = df['speed'][:week].interpolate(method = 'time')
+df.iloc[:week, df.columns.get_loc('flow')] = df['flow'][:week].interpolate(method = 'time')
 
 # Return to RangeIndex for the next operation
 df.reset_index(drop = True, inplace = True)
