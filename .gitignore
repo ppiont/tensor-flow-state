@@ -2,6 +2,7 @@
 data/
 plots/
 exercise/
+logs/
 
 # ignore postgres connection script (it includes database pw)
 pgConnect.py
