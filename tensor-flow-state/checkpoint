@@ -1,0 +1,2 @@
+model_checkpoint_path: "batch_512_many_units"
+all_model_checkpoint_paths: "batch_512_many_units"

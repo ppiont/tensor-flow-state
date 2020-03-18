@@ -9,7 +9,7 @@ import pandas as pd
 import psycopg2
 import holidays
 from sklearn.preprocessing import OneHotEncoder
-from modules.pg_connect import pg_connect
+from modules.fetch.pg_connect import pg_connect
 
 def ndw_get(start, end, ID = 'RWS01_MONIBAS_0021hrl0414ra'):
     
